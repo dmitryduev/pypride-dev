@@ -47,6 +47,30 @@ def fetch_cats(_cache_dir):
             print(f'Failed to fetch {url}: {str(e)}')
 
 
+def fetch_eph(_cache_dir, eph='de430.bsp'):
+    eph_dir = os.path.join(_cache_dir, 'jpl_eph')
+    if not os.path.exists(eph_dir):
+        os.makedirs(eph_dir)
+
+    # base_url = 'https://raw.githubusercontent.com/dmitryduev/pypride/master/pypride/jpl_eph/'
+    base_url = 'https://raw.githubusercontent.com/dmitryduev/pypride-dev/master/pypride/jpl_eph/'
+
+    try:
+        url = os.path.join(base_url, eph)
+
+        r = requests.get(url)
+
+        if r.status_code == 200:
+            with open(os.path.join(eph_dir, eph), 'wb') as f:
+                f.write(r.content)
+                print(f'Fetched {url}')
+        else:
+            print(f'Failed to fetch {url}')
+
+    except Exception as e:
+        print(f'Failed to fetch {url}: {str(e)}')
+
+
 __version__ = '2.0.0'
 
 
@@ -59,3 +83,6 @@ if not os.path.exists(cache_dir):
 
     # fetch catalogs on first run
     fetch_cats(cache_dir)
+
+    # fetch DE430 on first run
+    fetch_eph(cache_dir, eph='de430.bsp')
