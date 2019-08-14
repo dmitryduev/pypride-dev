@@ -541,7 +541,7 @@ class obs(object):
                     pointingsJ2000_scan = []
                     # iterate over coordinates
                     for ii in range(self.pointingsJ2000.shape[2]):
-                        ind = map(int, time[:, 0])
+                        ind = list(map(int, time[:, 0]))
                         # treat RA separately (fix if necessary)
                         if ii == 0:
                             cv_model.fit(time[:, 1], np.unwrap(self.pointingsJ2000[ind, jj, ii]))
@@ -562,7 +562,7 @@ class obs(object):
                 if len(self.pointingsDate) > 0:
                     pointingsDate_scan = []
                     for ii in range(self.pointingsDate.shape[2]):
-                        ind = map(int, time[:, 0])
+                        ind = list(map(int, time[:, 0]))
                         if ii == 0:
                             # fix RA if necessary
                             cv_model.fit(time[:, 1], np.unwrap(self.pointingsDate[ind, jj, ii]))
@@ -582,7 +582,7 @@ class obs(object):
                 if len(self.azels) > 0:
                     azels_scan = []
                     for ii in range(self.azels.shape[2]):
-                        ind = map(int, time[:, 0])
+                        ind = list(map(int, time[:, 0]))
                         if ii == 0:
                             cv_model.fit(time[:, 1], np.unwrap(self.azels[ind, jj, ii] * np.pi / 180.0))
                             wrap = np.angle(np.exp(1j * cv_model.predict(t_dense)))
@@ -658,7 +658,7 @@ class obs(object):
                 for ii in range(self.dude.delay.shape[1]):
                     # time[:,0] - indices of current scan in full-len tstamps
                     # time[:,1] - time stamps in the flesh
-                    ind = map(int, time[:, 0])
+                    ind = list(map(int, time[:, 0]))
                     if method != 'polyLocal':
                         cv_model.fit(time[:, 1], self.dude.delay[ind, ii])
                         # print [grid_score.mean_validation_score for \
@@ -677,7 +677,7 @@ class obs(object):
             if len(self.dude.uvw) > 0:
                 uvw_smooth_scan = []
                 for ii in range(self.dude.uvw.shape[1]):
-                    ind = map(int, time[:, 0])
+                    ind = list(map(int, time[:, 0]))
                     if method != 'polyLocal':
                         cv_model.fit(time[:, 1], self.dude.uvw[ind, ii])
                         uvw_smooth_scan.append(cv_model.predict(t_dense))
@@ -693,7 +693,7 @@ class obs(object):
             if len(self.dude.doppler) > 0:
                 doppler_smooth_scan = []
                 for ii in range(self.dude.doppler.shape[1]):
-                    ind = map(int, time[:, 0])
+                    ind = list(map(int, time[:, 0]))
                     if method != 'polyLocal':
                         cv_model.fit(time[:, 1], self.dude.doppler[ind, ii])
                         doppler_smooth_scan.append(cv_model.predict(t_dense))
@@ -1206,7 +1206,7 @@ class site(object):
         lt_01_tmp = 0.0
 
         astropy_t_1 = Time(JD + t_1 / 86400.0, format='jd', scale='utc', precision=9)
-        eph_t_0 = datetime.datetime(*map(int, gcrs[0, :3]))
+        eph_t_0 = datetime.datetime(*list(map(int, gcrs[0, :3])))
         # first time stamp negative?
         if utc[0] < 0:
             eph_t_0 += datetime.timedelta(days=1)
@@ -1343,7 +1343,7 @@ class site(object):
         JD = mjd + 2400000.5
         astropy_t_1_day_start = Time(JD, format='jd', scale='tdb', precision=9)
         t_1 = (astropy_t_1 - astropy_t_1_day_start).jd
-        t_start_day = datetime.datetime(*map(int, bcrs[0, :3]))
+        t_start_day = datetime.datetime(*list(map(int, bcrs[0, :3])))
         dd = (astropy_t_1.datetime - t_start_day).total_seconds() // 86400
 
         # print astropy_t_1.tdb.datetime, t_start_day, dd, JD, t_1
@@ -1472,7 +1472,7 @@ class site(object):
                     spd_elv_grid, spd_azi_grid = sorted(spd_elv.values())[::-1], sorted(spd_azi.values())
 
                     # get relevant entries:
-                    d_f_lines = [map(int, l.split()[2:4]) + map(float, l.replace('D-', 'e-').split()[4:])
+                    d_f_lines = [list(map(int, l.split()[2:4])) + list(map(float, l.replace('D-', 'e-').split()[4:]))
                                  for l in f_lines if l[0] == 'D' and l.split()[0] == 'D' and
                                  spd_stations[int(l.split()[1])] == self.name]
 
@@ -1787,7 +1787,7 @@ class ephem(object):
             t_1 -= 86400.0
 
         astropy_t_1 = Time(JD + t_1 / 86400.0, format='jd', scale='tdb', precision=9)
-        eph_t_0 = datetime.datetime(*map(int, bcrs[0, :3]))
+        eph_t_0 = datetime.datetime(*list(map(int, bcrs[0, :3])))
         # first time stamp negative?
         if tdb[0] < 0:
             eph_t_0 += datetime.timedelta(days=1)

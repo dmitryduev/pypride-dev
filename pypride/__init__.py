@@ -116,5 +116,17 @@ if not os.path.exists(cache_dir):
     # fetch DE430 on first run
     fetch_eph(cache_dir)
 
+    # make aux dirs:
+    if not os.path.exists(os.path.join(cache_dir, 'ion')):
+        os.makedirs(os.path.join(cache_dir, 'ion'))
+    if not os.path.exists(os.path.join(cache_dir, 'meteo')):
+        os.makedirs(os.path.join(cache_dir, 'meteo'))
+    if not os.path.exists(os.path.join(cache_dir, 'sc_eph')):
+        os.makedirs(os.path.join(cache_dir, 'sc_eph'))
+    for sc_name in ('mex', 'vex', 'rosetta', 'radioastron', 'gnss', 'gaia', 'mro'):
+        pth = os.path.join(cache_dir, 'sc_eph', 'raw_' + sc_name)
+        if not os.path.exists(pth):
+            os.makedirs(pth)
+
 # import all class declarations
 from .classes import *

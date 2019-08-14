@@ -13,7 +13,7 @@ import scipy as sp
 from scipy.interpolate import BarycentricInterpolator as bi
 
 import datetime
-from astropy.time import Time, TimeDelta
+from astropy.time import Time
 import astropy.units as units
 from astropy.coordinates import EarthLocation, Angle
 import os
@@ -25,67 +25,24 @@ import gzip
 import collections
 from copy import deepcopy
 
-## fortran stuff
-#from lagint import lagint
-#from pleph import pleph
-#from iau_xys00a import iau_xys00a_fort
-#from admint2 import admint2
-try:
-    from pypride.vintflib import lagint, lagintd, pleph, iau_xys00a_fort, admint2
-except:
-    # compile the Fortran code if necessary
-    import numpy.f2py as f2py
-    fid = open('vintflib.f')
-    source = fid.read()
-    fid.close()
-    f2py.compile(source, modulename='vintflib')
-    from pypride.vintflib import lagint, lagintd, pleph, iau_xys00a_fort, admint2
-#from pypride.vintflib import lagint, pleph, iau_xys00a_fort, admint2#, lagintt
+## ex-fortran stuff
+from .vintflib import lagint, lagintd, pleph, iau_xys00a_fort, admint2
 
 ## parallelism
 import multiprocessing as mp
 import subprocess
-
-#from decimal import *
 
 ## mostly used numpy stuff:
 from numpy.linalg import norm
 from numpy import dot
 np.set_printoptions(precision=18)
 from numpy.polynomial import chebyshev as cheb
-#cheb = np.polynomial.chebyshev
 
-#from numba import jit, double#, autojit
 import numba
 
 import inspect
 
-#from time import time as _time
-
-# go off and set up missing folders if git-cloned:
-#if 'vispy' in os.getcwd():
-#    if not os.path.isdir('ion'):
-#        os.makedirs('ion')
-#    if not os.path.isdir('meteo'):
-#        os.makedirs('meteo')
-#    if not os.path.isdir('sc_eph'):
-#        os.makedirs('sc_eph')
-#    for sc_name in ('mex', 'vex', 'radioastron', 'gnss', 'gaia'):
-#        pth = os.path.join('sc_eph','raw_'+sc_name)
-#        if not os.path.isdir(pth):
-#            os.makedirs(pth)
-#abs_path = os.path.dirname(os.path.abspath(__file__))
-abs_path = os.path.dirname(inspect.getfile(inspect.currentframe()))
-if not os.path.isdir(os.path.join(abs_path, 'ion')):
-    os.makedirs(os.path.join(abs_path, 'ion'))
-if not os.path.isdir(os.path.join(abs_path, 'meteo')):
-    os.makedirs(os.path.join(abs_path, 'meteo'))
-if not os.path.isdir(os.path.join(abs_path, 'sc_eph')):
-    os.makedirs(os.path.join(abs_path, 'sc_eph'))
-for sc_name in ('mex', 'vex', 'rosetta', 'radioastron', 'gnss', 'gaia', 'mro'):
-    pth = os.path.join(abs_path, 'sc_eph','raw_'+sc_name)
-    if not os.path.isdir(pth):
-        os.makedirs(pth)
+# abs_path = os.path.dirname(inspect.getfile(inspect.currentframe()))
 
 '''
 #==============================================================================
