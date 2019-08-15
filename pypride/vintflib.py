@@ -61,6 +61,82 @@ def lagint(npo, xi, yi, xo):
     return y, dy
 
 
+def lagintd(npo, xi, yi, xo):
+    """
+     Lagrange interpolation with differentiation
+    :param npo: number of points to use = order + 1
+    :param xi: input x's
+    :param yi: input y's
+    :param xo: interpolation point(s)
+    :return:
+    """
+    l = len(xo) if hasattr(xo, '__len__') else 1
+    m = len(xi)
+
+    # np - number of points = order + 1
+    # order of the interpolant must be <= m
+    if npo > m:
+        npo = m
+
+    wl = int(np.floor(npo / 2))
+    wr = int(np.ceil(npo / 2))
+
+    y = np.empty(l)
+    dy = np.empty(l)
+
+    q = np.empty((npo, npo))
+    dq = np.empty((npo, npo))
+
+    for k in range(l):
+        xok = xo[k] if hasattr(xo, '__len__') else xo
+        # nearest nod in the grid right to xo, number of elements left to xo:
+        nl = int(np.searchsorted(xi, xok))
+        # number of elements right to xo
+        nr = m - nl
+        # cut npo points around xo
+        if wl > nl:
+            xin = xi[0: npo]
+            yin = yi[0: npo]
+        elif wr > nr:
+            xin = xi[m - npo:]
+            yin = yi[m - npo:]
+        else:
+            xin = xi[nl - wl: nl + wr]
+            yin = yi[nl - wl: nl + wr]
+        # print(xin, yin)
+
+        # Perform the Lagrange interpolation with differentiation with the Aitken method.
+
+        q[:, 0] = yin
+
+        for i in range(1, npo):
+            for j in range(1, i + 1):
+                xi1 = xin[i - j]
+                xi2 = xin[i]
+                fi1 = q[i, j - 1]
+                fi2 = q[i - 1, j - 1]
+                q[i, j] = ((xok - xi1) * fi1 - (xok - xi2) * fi2) / (xi2 - xi1)
+
+        for j in range(1, npo):
+            dq[j, 1] = (q[j, 0] - q[j - 1, 0]) / (xin[j] - xin[j - 1])
+
+        for i in range(2, npo):
+            for j in range(2, i + 1):
+                xi1 = xin[i - j]
+                xi2 = xin[i]
+                fi1 = dq[i, j - 1]
+                fi2 = dq[i - 1, j - 1]
+                dq[i, j] = ((xok - xi1) * fi1 - (xok - xi2) * fi2) / (xi2 - xi1)
+                fi1 = q[i, j - 1]
+                fi2 = q[i - 1, j - 1]
+                dq[i, j] = dq[i, j] + (fi1 - fi2) / (xi2 - xi1)
+
+        y[k] = q[-1, -1]
+        dy[k] = dq[-1, -1]
+
+    return y, dy
+
+
 homedir = os.environ['HOME']
 
 cache_dir = os.path.join(homedir, '.pypride')
