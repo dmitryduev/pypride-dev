@@ -10,6 +10,7 @@ setup(name='pypride',
                         'numba>=0.45.1',
                         'numpy>=1.13',
                         'paramiko>=2.6.0',
+                        'pysofa2>=18.1.30.4'
                         'requests>=2.22.0',
                         'scikit-learn>=0.21.3',
                         'scipy>=1.3.1']

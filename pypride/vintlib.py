@@ -26,7 +26,8 @@ import collections
 from copy import deepcopy
 
 ## ex-fortran stuff
-from .vintflib import lagint, lagintd, pleph, iau_xys00a_fort, admint2
+from .vintflib import lagint, lagintd, pleph, admint2
+from pysofa2 import Xys00a as iau_xys00a_fort
 
 ## parallelism
 import multiprocessing as mp
@@ -42,6 +43,12 @@ import numba
 
 import inspect
 
+from functools import reduce
+import socket
+
+# import all class declarations
+from .classes import *
+
 # abs_path = os.path.dirname(inspect.getfile(inspect.currentframe()))
 
 '''
@@ -51,7 +58,7 @@ import inspect
 '''
 def flatten_generator(l):
     for el in l:
-        if isinstance(el, collections.Iterable) and not isinstance(el, basestring):
+        if isinstance(el, collections.Iterable) and not isinstance(el, str):
             for sub in flatten(el):
                 yield sub
         else:
@@ -60,7 +67,7 @@ def flatten_generator(l):
 def flatten(x):
     result = []
     for el in x:
-        if hasattr(el, "__iter__") and not isinstance(el, basestring):
+        if hasattr(el, "__iter__") and not isinstance(el, str):
             result.extend(flatten(el))
         else:
             result.append(el)
@@ -74,13 +81,12 @@ def flatten(x):
 #==============================================================================
 '''
 def factors(n):
-    facs = set(reduce(list.__add__,
-                ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+    facs = set(reduce(list.__add__, ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
     return sorted(list(facs))
 
 '''
 #==============================================================================
-# Use interpolator as exptrapolator
+# Use interpolator as extrapolator
 #==============================================================================
 '''
 def extrap1d(interpolator):
@@ -132,9 +138,9 @@ def extrap(x, xp, yp, interp_type='linear'):
 #==============================================================================
 '''
 def memoize(f):
-    '''
+    """
     Memoize function values on previously used arguments
-    '''
+    """
     def memf(*x):
         if x not in memf.cache:
             memf.cache[x] = f(*x)
@@ -149,11 +155,14 @@ def memoize(f):
 #==============================================================================
 '''
 def internet_on():
-    ''' Check internet connection '''
+    """
+        Check internet connection
+    """
     try:
-        urllib2.urlopen('http://google.com', timeout=1)
+        # connect to the host -- tells us if the host is actually reachable
+        socket.create_connection(("www.google.com", 80))
         return True
-    except urllib2.URLError:
+    except OSError:
         pass
     return False
 
@@ -164,10 +173,10 @@ def internet_on():
 '''
 @memoize
 def make_lag_bi(x, y):
-    '''
+    """
     construct Lagrange interpolator
-    input should be two tupils (immutable, thus hushable)
-    '''
+    input should be two tuples (immutable, thus hashable)
+    """
     L = bi(x)
     L.set_yi(y)
     return L
@@ -234,27 +243,25 @@ def smooth(x, window_len=11, window='hanning'):
     """
 
     if x.ndim != 1:
-        raise ValueError, "smooth only accepts 1 dimension arrays."
+        raise ValueError("smooth only accepts 1 dimension arrays.")
 
     if x.size < window_len:
-        raise ValueError, "Input vector needs to be bigger than window size."
+        raise ValueError("Input vector needs to be bigger than window size.")
 
-    if window_len<3:
+    if window_len < 3:
         return x
 
     if window not in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError, \
-        "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+        raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
 
-
-    s=np.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
+    s = np.r_[x[window_len - 1:0:-1], x, x[-1:-window_len:-1]]
     #print(len(s))
-    if window == 'flat': #moving average
-        w=np.ones(window_len,'d')
+    if window == 'flat':  # moving average
+        w = np.ones(window_len, 'd')
     else:
-        w=eval('np.'+window+'(window_len)')
+        w = eval('np.'+window+'(window_len)')
 
-    y=np.convolve(w/w.sum(),s,mode='valid')
+    y = np.convolve(w/w.sum(), s, mode='valid')
 
 #    return y
     return y[(window_len/2-1):-(window_len/2)]
@@ -346,8 +353,7 @@ def FindMax(Spec, Fmin, Fmax):
     Fmin = int(Fmin)
     Fmax = int(Fmax)
     # create index mask: 1 means mask and don't use, 0 - don't mask and use
-    mask = np.hstack((np.ones(Fmin), \
-                      np.zeros(Fmax-Fmin), np.ones(len(Spec)-Fmax)))
+    mask = np.hstack((np.ones(Fmin), np.zeros(Fmax-Fmin), np.ones(len(Spec)-Fmax)))
     mask = np.array(mask, dtype=bool)
 
     sp_masked = np.ma.array(Spec, mask=mask)
@@ -368,8 +374,7 @@ def FindMax(Spec, Fmin, Fmax):
 '''
 def factorise(n):
     # factorise a number
-    facs = set(reduce(list.__add__,
-                ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+    facs = set(reduce(list.__add__, ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
     return sorted(list(facs))
 
 '''
@@ -507,14 +512,14 @@ def freqRamp(cat_dir=None, sc=None, tx_type=None):
         tx_type: ['1way', '3way']
     '''
     # read frequency ramping parameters
-    if sc==None or tx_type==None:
+    if sc is None or tx_type is None:
         raise Exception('Can\'t load ramp params: S/C/Tx_type not specified.')
     else:
-        if cat_dir==None:
-            cat_dir = 'cats/ramp.' if tx_type=='3way' else 'cats/ramp1w.'
+        if cat_dir is None:
+            cat_dir = 'cats/ramp.' if tx_type == '3way' else 'cats/ramp1w.'
         rampFile = ''.join((cat_dir, sc.lower()))
         try:
-            if tx_type=='3way':
+            if tx_type == '3way':
                 with open(rampFile, 'r') as f:
                     f_lines = f.readlines()
                     # skip comments
@@ -525,14 +530,12 @@ def freqRamp(cat_dir=None, sc=None, tx_type=None):
                         t_start = ''.join((line[0], ' ', line[1]))
                         t_stop = ''.join((line[2], ' ', line[3]))
                         # [t_start t_stop f_0 df uplink_sta]
-                        ramp.append([datetime.datetime.strptime(t_start, \
-                                                      "%Y-%m-%d %H:%M:%S.%f"), \
-                                    datetime.datetime.strptime(t_stop, \
-                                                      "%Y-%m-%d %H:%M:%S.%f"), \
-                                    float(line[4]), float(line[5]), line[6] ])
+                        ramp.append([datetime.datetime.strptime(t_start, "%Y-%m-%d %H:%M:%S.%f"),
+                                     datetime.datetime.strptime(t_stop, "%Y-%m-%d %H:%M:%S.%f"),
+                                     float(line[4]), float(line[5]), line[6] ])
                 return ramp
 
-            elif tx_type=='1way':
+            elif tx_type == '1way':
                 # for ESA s/c time is in TDB!!
                 with open(rampFile, 'r') as f:
                     f_lines = f.readlines()
@@ -544,14 +547,12 @@ def freqRamp(cat_dir=None, sc=None, tx_type=None):
                         t_start = ''.join((line[0], ' ', line[1]))
                         t_stop = ''.join((line[2], ' ', line[3]))
                         # [t_start t_stop f_0 df uplink_sta]
-                        ramp.append([datetime.datetime.strptime(t_start, \
-                                                      "%Y-%m-%d %H:%M:%S.%f"), \
-                                    datetime.datetime.strptime(t_stop, \
-                                                      "%Y-%m-%d %H:%M:%S.%f"), \
-                                    float(line[4]), float(line[5]) ])
+                        ramp.append([datetime.datetime.strptime(t_start, "%Y-%m-%d %H:%M:%S.%f"),
+                                     datetime.datetime.strptime(t_stop, "%Y-%m-%d %H:%M:%S.%f"),
+                                     float(line[4]), float(line[5]) ])
                 return ramp
-        except Exception, err:
-            print str(err)
+        except Exception as err:
+            print(str(err))
             raise Exception('Could not load ramp params for ' + sc + '.')
 
 '''
@@ -561,18 +562,18 @@ def freqRamp(cat_dir=None, sc=None, tx_type=None):
 '''
 def freqConst(cat_file='cats/sc.freq', sc=None):
     # read frequency ramping parameters
-    if sc==None:
+    if sc is None:
         raise Exception('Can\'t load freq value: S/C not specified.')
     else:
         try:
             with open(cat_file, 'r') as f:
                 f_lines = f.readlines()
 
-            return [(float(x.split()[1]), x.split()[2]) for x in f_lines \
+            return [(float(x.split()[1]), x.split()[2]) for x in f_lines
                     if x[0]!='#' and x.split()[0].lower()==sc.lower()][0]
 
-        except Exception, err:
-            print str(err)
+        except Exception as err:
+            print(str(err))
             raise Exception('Could not load frequency settings for '+sc+'.')
 
 
@@ -692,7 +693,7 @@ def getESAraweph(source, orb_path='.', replaceDE=True):
 
             return True
     else:
-        print 'No Internet connection, unable to get ESA\'s ephs.'
+        print('No Internet connection, unable to get ESA\'s ephs.')
         return False
 
 
@@ -754,12 +755,12 @@ def getESAraweph_old(source, orb_path='.', replaceDE=True):
                 try:
                     url = eph_url + '/' + fNew
                     fu = urllib2.urlopen(url)
-                    print "downloading " + fNew
+                    print("downloading " + fNew)
                     # Save zipped file
                     with open(os.path.join(orb_path, fNew), "wb") as local_file:
                         local_file.write(fu.read())
                     # unzip:
-                    print "unzipping " + fNew
+                    print("unzipping " + fNew)
                     with gzip.open(os.path.join(orb_path, fNew), 'rb') as fIn, \
                             open(os.path.join(orb_path, fNew[:-3]), "w") as fOut:
                         fOut.write(fIn.read())
@@ -778,14 +779,14 @@ def getESAraweph_old(source, orb_path='.', replaceDE=True):
                     [os.remove(os.path.join(orb_path, x)) \
                      for x in orbFilesLocal if x[:9] in fNew]
                 # handle errors
-                except urllib2.HTTPError, e:
-                    print "HTTP Error:", e.code, url
-                except urllib2.URLError, e:
-                    print "URL Error:", e.reason, url
+                except urllib2.HTTPError as e:
+                    print("HTTP Error:", e.code, url)
+                except urllib2.URLError as e:
+                    print("URL Error:", e.reason, url)
 
             return True
     else:
-        print 'No Internet connection, unable to get ESA\'s ephs.'
+        print('No Internet connection, unable to get ESA\'s ephs.')
         return False
 
 '''
@@ -895,12 +896,12 @@ def load_slots(orb_files, t_start, t_stop, t_step, source, inp=None):
         slotData.append(out)
 
     # line number of 'start_time', start_time, stop_time
-    s = [x for x in slotData if (mjuliandate(*t_start)>=mjuliandate(*x[1]) and\
-                                mjuliandate(*t_start)<=mjuliandate(*x[2])) or\
-                                (mjuliandate(*t_start)<=mjuliandate(*x[1]) and\
-                                (mjuliandate(*t_stop)<=mjuliandate(*x[2]) and\
-                                 mjuliandate(*t_stop)>=mjuliandate(*x[1]))) or\
-                                 (mjuliandate(*t_start)<=mjuliandate(*x[1]) and\
+    s = [x for x in slotData if (mjuliandate(*t_start)>=mjuliandate(*x[1]) and
+                                mjuliandate(*t_start)<=mjuliandate(*x[2])) or
+                                (mjuliandate(*t_start)<=mjuliandate(*x[1]) and
+                                (mjuliandate(*t_stop)<=mjuliandate(*x[2]) and
+                                 mjuliandate(*t_stop)>=mjuliandate(*x[1]))) or
+                                 (mjuliandate(*t_start)<=mjuliandate(*x[1]) and
                                   mjuliandate(*t_stop)>=mjuliandate(*x[2]))]
 
     # load blocks of ephm corresponding to s'es
@@ -1028,7 +1029,7 @@ def load_slots(orb_files, t_start, t_stop, t_step, source, inp=None):
             if source.lower()=='vex':
                 cbodyState = pleph(jd, 2, 12, jpl_eph)
             elif source.lower() in ('her', 'rosetta'):
-                cbodyState = pleph(jd, 4, 12, jpl_eph)
+                cbodyState = pleph(jd, 3, 12, jpl_eph)
             elif source.lower()=='mex':
                 cbodyState = pleph(jd, 4, 12, jpl_eph)
             else:
@@ -1164,11 +1165,11 @@ def esa_eph_download_helper(args):
         html_seg = html_seg.split('\n')
         html_seg = [l for l in html_seg if len(l) > 5 and (l.strip()[0] != '#' and l.strip()[0] != '<')]
     # handle errors
-    except urllib2.HTTPError, e:
-        print "HTTP Error:", e.code, eph_url
+    except urllib2.HTTPError as e:
+        print("HTTP Error:", e.code, eph_url)
         html_seg = []
-    except urllib2.URLError, e:
-        print "URL Error:", e.reason, eph_url
+    except urllib2.URLError as e:
+        print("URL Error:", e.reason, eph_url)
         html_seg = []
     # print(sc_name, seg_start, seg_stop, ref_object, frame, scale, len(html_seg))
     # save current segment
@@ -1390,28 +1391,27 @@ def esa_sc_eph_make(source, date_t_start, date_t_stop, inp, paddLeft=30, paddRig
 
     # force update requested?
     if eph_bc_exist and inp['sc_eph_force_update']:
-        print 'Precalculated S/C ephs forced update requested.'
-        print 'removing {:s}'.format(sc_bcrs_eph)
+        print('Precalculated S/C ephs forced update requested.')
+        print('removing {:s}'.format(sc_bcrs_eph))
         os.remove(os.path.join(inp['sc_eph_cat'], sc_bcrs_eph))
-        print 'removing {:s}'.format(sc_gcrs_eph)
+        print('removing {:s}'.format(sc_gcrs_eph))
         os.remove(os.path.join(inp['sc_eph_cat'], sc_gcrs_eph))
-        print 'removing {:s}'.format(sc_gtrs_eph)
+        print('removing {:s}'.format(sc_gtrs_eph))
         os.remove(os.path.join(inp['sc_eph_cat'], sc_gtrs_eph))
 
     # now make/update the eph
     if not eph_bc_exist or t_obs_out_of_eph_boundary:
         if not eph_bc_exist:
-            print 'S/C BCRS ephemeris file '+sc_bcrs_eph+' not found, creating...'
+            print('S/C BCRS ephemeris file '+sc_bcrs_eph+' not found, creating...')
         if t_obs_out_of_eph_boundary:
             # print t_start, t_end, eph_start, eph_end
-            print 'T_obs not within existing BCRS ephemeris time range. Updating '\
-                  +sc_bcrs_eph+'...'
+            print('T_obs not within existing BCRS ephemeris time range. Updating '+sc_bcrs_eph+'...')
 
         # start time is in the future? notify the user!
         if t_start > datetime.datetime.now():
-            print 'Note that start date is in the future! ' + \
-                  'Using planning ephs. \n' + \
-                  'Force update computed ephs when final version is available!'
+            print('Note that start date is in the future! ' +
+                  'Using planning ephs. \n' +
+                  'Force update computed ephs when final version is available!')
 
         # time slot
         t_start = [t_start.year, t_start.month, t_start.day,
@@ -1549,9 +1549,9 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
     #now download/update the eph
     if eph_bc_exist!=1 or t_obs_out_of_eph_boundary==1:
         if eph_bc_exist!=1:
-            print 'S/C bc ephemeris file: '+sc_bcrs_eph+' not found, downloading...'
+            print('S/C bc ephemeris file: '+sc_bcrs_eph+' not found, downloading...')
         if t_obs_out_of_eph_boundary==1:
-            print 'T_obs is not within the existing bc ephemeris time range. Updating '+sc_bcrs_eph+'...'
+            print('T_obs is not within the existing bc ephemeris time range. Updating '+sc_bcrs_eph+'...')
 
         eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
                 'mission='+source+'&'+\
@@ -1608,7 +1608,7 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
 
     # because of a stupid limitation on the website of 10000 maximum epochs
     # in one go...:
-    if source=='MEX' or source=='HER':
+    if source == 'MEX' or source == 'HER':
         t_step_gc=5
     else:
         t_step_gc=1
@@ -1643,9 +1643,9 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
     #now download/update the GTRS eph
     if eph_gc_exist!=1 or t_obs_out_of_eph_boundary==1:
         if eph_gc_exist!=1:
-            print 'S/C gtrs ephemeris file: '+sc_gtrs_eph+' not found, downloading...'
+            print('S/C gtrs ephemeris file: '+sc_gtrs_eph+' not found, downloading...')
         if t_obs_out_of_eph_boundary==1:
-            print 'T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gtrs_eph+'...'
+            print('T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gtrs_eph+'...')
 
         # DO NOT LT-CORRECT!!
         eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
@@ -1782,9 +1782,9 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
     # this is used to calculate ra/dec's
     if eph_gcrs_exist!=1 or t_obs_out_of_eph_boundary==1:
         if eph_gcrs_exist!=1:
-            print 'S/C gcrs ephemeris file: '+sc_gcrs_eph+' not found, calculating...'
+            print('S/C gcrs ephemeris file: '+sc_gcrs_eph+' not found, calculating...')
         if t_obs_out_of_eph_boundary==1:
-            print 'T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gcrs_eph+'...'
+            print('T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gcrs_eph+'...')
 
         # load BCRS eph in UTC time stamps:
         eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
@@ -2001,15 +2001,14 @@ def gaia_fresh(cat_gaia):
             client.close()
             # check if it's already downloaded, scp if necessary:
             if eph_file not in txt:
-                print ''.join(('Downloading ', eph_file, '...'))
-                os.system(''.join(('scp rgbot@ssh.sciops.esa.int:',\
-                            eph_path, eph_file, ' ', cat_gaia)))
+                print(''.join(('Downloading ', eph_file, '...')))
+                os.system(''.join(('scp rgbot@ssh.sciops.esa.int:', eph_path, eph_file, ' ', cat_gaia)))
                 # refresh:)
                 fresh = eph_file
                 updated = True
-        except Exception, err:
-            print str(err)
-            print 'Could not check fresh Gaia ephemeris.'
+        except Exception as err:
+            print(str(err))
+            print('Could not check fresh Gaia ephemeris.')
 
     return os.path.join(cat_gaia, fresh), updated
 
@@ -2055,12 +2054,12 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
 
     # force update requested?
     if eph_bc_exist and inp['sc_eph_force_update']:
-        print 'Precalculated S/C ephs forced update requested.'
-        print 'removing {:s}'.format(sc_bcrs_eph)
+        print('Precalculated S/C ephs forced update requested.')
+        print('removing {:s}'.format(sc_bcrs_eph))
         os.remove(os.path.join(inp['sc_eph_cat'], sc_bcrs_eph))
-        print 'removing {:s}'.format(sc_gcrs_eph)
+        print('removing {:s}'.format(sc_gcrs_eph))
         os.remove(os.path.join(inp['sc_eph_cat'], sc_gcrs_eph))
-        print 'removing {:s}'.format(sc_gtrs_eph)
+        print('removing {:s}'.format(sc_gtrs_eph))
         os.remove(os.path.join(inp['sc_eph_cat'], sc_gtrs_eph))
         eph_bc_exist = False
 
@@ -2072,12 +2071,11 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
     # now download/update the eph
     if not eph_bc_exist or t_obs_out_of_eph_boundary or gaia_updated:
         if not eph_bc_exist:
-            print 'S/C bc ephemeris file '+sc_bcrs_eph+' not found'
+            print('S/C bc ephemeris file '+sc_bcrs_eph+' not found')
         if t_obs_out_of_eph_boundary:
-            print 'T_obs not within existing bc ephemeris time range '\
-                    +sc_bcrs_eph+'...'
+            print('T_obs not within existing bc ephemeris time range '+sc_bcrs_eph+'...')
         if gaia_updated:
-            print 'Found Gaia orbit update'
+            print('Found Gaia orbit update')
 
         # set eph file manually:
         #org_eph = load_scf(sc_eph_cat+'/raw_radioastron/RA121031-121101jj.scf')
@@ -2152,10 +2150,10 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
             t_eph_utc -= 1
 
         t_step = 10.0 #seconds
-        mjd_start = mjuliandate(date_t_start.year,date_t_start.month,date_t_start.day,
-                                date_t_start.hour,date_t_start.minute,date_t_start.second)
-        mjd_end = mjuliandate(date_t_end.year,date_t_end.month,date_t_end.day,
-                                date_t_end.hour,date_t_end.minute,date_t_end.second)
+        mjd_start = mjuliandate(date_t_start.year, date_t_start.month, date_t_start.day,
+                                date_t_start.hour, date_t_start.minute, date_t_start.second)
+        mjd_end = mjuliandate(date_t_end.year, date_t_end.month, date_t_end.day,
+                                date_t_end.hour, date_t_end.minute, date_t_end.second)
         N_obs = int(round(86400.0*(mjd_end-mjd_start)/t_step) + 1.0)
         ob = obs(['DUMMY'],'DUMMY','C')
         ob.addScan(date_t_start, t_step, nobs=N_obs)
@@ -2184,7 +2182,7 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
         ''' get the relevant eop entries from the catalogue: '''
         with open(cat_eop, 'r') as fc:
             fc_lines = fc.readlines()
-        eops = np.zeros((7,7)) # +/- 3 days
+        eops = np.zeros((7, 7)) # +/- 3 days
         for jj in range(len(fc_lines)):
             if fc_lines[jj][0]!=' ' and (fc_lines[jj][0]!='*' and fc_lines[jj][0]!='#'):
                 entry = [float(x) for x in fc_lines[jj].split()]
@@ -2294,7 +2292,7 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
         ''' correct CT_eph if needed '''
         for cr in range(1,int(dd)+1):
             for nn in range(1,len(CT_eph)):
-                 if CT_eph[nn]<CT_eph[nn-1]:
+                 if CT_eph[nn] < CT_eph[nn-1]:
                       CT_eph[nn] += 1
 
         ''' calculate velosities if GNSS '''
@@ -2444,7 +2442,7 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
 
     # doesn't exist? download first then:
     if not os.path.isfile(gnss_sp3):
-        print 'GNSS sp3-file: {:s}.Z not found, fetching...'.format(sp3_name)
+        print('GNSS sp3-file: {:s}.Z not found, fetching...'.format(sp3_name))
         try:
             ftp = FTP('cddis.nasa.gov')
             ftp.login()  # user anonymous, passwd anonymous
@@ -2457,16 +2455,16 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
                 ftp.retrbinary('RETR {:s}.Z'.format(sp3_name),
                            open('{:s}.Z'.format(gnss_sp3), 'wb').write)
                 # uncompress:
-                print 'uncompressing: ' + '{:s}.Z'.format(sp3_name) + '...'
+                print('uncompressing: ' + '{:s}.Z'.format(sp3_name) + '...')
                 os.system('uncompress -f {:s}'.format(gnss_sp3))
             else:
                 raise Exception('file {:s} not found on the server. fail!'.\
                         format(sp3_name+'.Z'))
             ftp.quit()
 
-        except Exception, err:
-            print str(err)
-            print 'Failed to download {:s} from cddis.nasa.gov'.format(sp3_name)
+        except Exception as err:
+            print(str(err))
+            print('Failed to download {:s} from cddis.nasa.gov'.format(sp3_name))
 
     # load:
     if load:
@@ -2605,7 +2603,7 @@ def eop_iers(mjd, UTC, eops):
 
 ## ----------------------------------------------------------------
 #@numba.jit('f8(f8[:], f8[:], i8, f8)')
-def LAGINT (X,Y,n,xint):
+def LAGINT(X, Y, n, xint):
     '''
      This subroutine performs lagrangian interpolation
      within a set of (X,Y) pairs to give the y
@@ -5754,8 +5752,8 @@ def cel2ter00(date_utc, eop_int):
     try:
         X, Y, S = iau_xys00a_fort ( DJMJD0, TT ) # fortran version
     except:
-        print 'f2pyed version of iau_xys00a did not work,\
-               so it is gonna take a wwhhhiiillle. u betah fix dat!'
+        print('f2pyed version of iau_xys00a did not work,\
+               so it is gonna take a wwhhhiiillle. u betah fix dat!')
         # this is 2 orders of magnitude slower!!
         X, Y, S = iau_XYS00A ( DJMJD0, TT ) # python version
 
@@ -6259,7 +6257,6 @@ def iau_FAD03 ( T ):
                         T*(        - 0.00003169 )))), TURNAS ) * DAS2R
 
     # *  Finished.
-
 
 
 def iau_FAE03 ( T ):
@@ -6870,7 +6867,6 @@ def iau_FAPA03 ( T ):
     # *  Finished.
 
 
-
 def iau_FASA03 ( T ):
     '''
     # *+
@@ -6929,7 +6925,6 @@ def iau_FASA03 ( T ):
     # *  Finished.
 
 
-
 def iau_FAUR03 ( T ):
     '''
     # *+
@@ -6985,7 +6980,6 @@ def iau_FAUR03 ( T ):
     return fmod( 5.481293872 + 7.4781598567 * T, D2PI )
 
     # *  Finished.
-
 
 
 def iau_FAVE03 ( T ):
@@ -10162,7 +10156,6 @@ def iau_NUT00A ( DATE1, DATE2 ):
     # *  Finished.
 
 
-
 def iau_PN00A ( DATE1, DATE2 ):
     '''
     # *+
@@ -10273,7 +10266,6 @@ def iau_PN00A ( DATE1, DATE2 ):
 
     return DPSI, DEPS, EPSA, RB, RP, RBP, RN, RBPN
     # *  Finished.
-
 
 
 def iau_PN00 ( DATE1, DATE2, DPSI, DEPS ):
@@ -10395,7 +10387,6 @@ def iau_PN00 ( DATE1, DATE2, DPSI, DEPS ):
 
     return EPSA, RB, RP, RBP, RN, RBPN
     # *  Finished.
-
 
 
 def iau_PNM00A ( DATE1, DATE2 ):
@@ -10645,11 +10636,15 @@ def iau_RX(phi, R):
                    [0, cos(phi), sin(phi)], \
                    [0, -sin(phi), cos(phi)]])
     return np.dot(Rx, R)
+
+
 def iau_RY(phi, R):
     Ry = np.array([[cos(phi), 0, -sin(phi)], \
                    [0, 1, 0], \
                    [sin(phi), 0, cos(phi)]])
     return np.dot(Ry, R)
+
+
 def iau_RZ(phi, R):
     Rz = np.array([[ cos(phi), sin(phi), 0], \
                    [-sin(phi), cos(phi), 0], \
@@ -10985,7 +10980,6 @@ def iau_PR00 ( DATE1, DATE2 ):
     # *  Finished.
 
 
-
 def iau_OBL80 ( DATE1, DATE2 ):
     '''
     # *+
@@ -11061,7 +11055,6 @@ def iau_OBL80 ( DATE1, DATE2 ):
                                0.001813 * T ) * T ) * T )
 
     # *  Finished.
-
 
 
 def iau_NUMAT ( EPSA, DPSI, DEPS ):
@@ -11713,7 +11706,7 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
 
     ''' Don't do anything if the dates are in the future '''
     if (datetime.datetime.now() - date_start).total_seconds() < 0:
-        print 'Experiment start date is in the future. Thus no tropo/iono data.'
+        print('Experiment start date is in the future. Thus no tropo/iono data.')
         return
 
     ''' load data from first day to last+1 '''
@@ -11762,7 +11755,7 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
             vmf_file = '{:4d}{:03d}.vmf1_r'.format(year, doy)
             if not os.path.isfile(meteo_cat+'/'+vmf_file):
                 try:
-                    print 'vmf1 meteo file '+vmf_file + ' not found, downloading...'
+                    print('vmf1 meteo file '+vmf_file + ' not found, downloading...')
                     met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/SITE/VLBI/'+\
                               str(year)+'/'+vmf_file
                     response = urllib2.urlopen(met_url)
@@ -11771,17 +11764,16 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                     with open(os.path.join(meteo_cat, vmf_file), 'w') as out:
                         for line in met_file:
                             out.write(line)
-                except Exception, err:
-                    print str(err)
-                    print 'no troposphere available this time.'
+                except Exception as err:
+                    print(str(err))
+                    print('no troposphere available this time.')
 
             ''' tropospheric gradient files: '''
             # check file existance and download if necessary:
             lhg_file = '{:4d}{:03d}.lhg_r'.format(year, doy)
             if not os.path.isfile(meteo_cat+'/'+lhg_file):
                 try:
-                    print 'tropo gradient file '+lhg_file+\
-                        ' not found, downloading...'
+                    print('tropo gradient file '+lhg_file+' not found, downloading...')
                     met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/ETC/LHG/VLBI/'+\
                                 str(year)+'/'+lhg_file
                     response = urllib2.urlopen(met_url)
@@ -11790,17 +11782,16 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                     with open(os.path.join(meteo_cat, lhg_file), 'w') as out:
                         for line in met_file:
                             out.write(line)
-                except Exception, err:
-                    print str(err)
-                    print 'no tropo gradients available this time.'
+                except Exception as err:
+                    print(str(err))
+                    print('no tropo gradients available this time.')
 
             ''' vmf1 grid files: '''
             vmf_grid_file = 'VMFG_{:4d}{:02d}{:02d}.H'\
                                 .format(year, day.month, day.day)
             # (check the last file):
             if not os.path.isfile(meteo_cat+'/'+vmf_grid_file+'18'):
-                print 'vmf1 grid files '+vmf_grid_file+\
-                      '00-18 not found, downloading...'
+                print('vmf1 grid files '+vmf_grid_file+'00-18 not found, downloading...')
                 for hh in ('00','06','12','18'):
                     try:
                         met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/GRID/VMFG/'+\
@@ -11811,10 +11802,10 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                         with open(meteo_cat+'/'+vmf_grid_file+hh,'w') as out:
                             for line in met_file:
                                 out.write(line)
-                    except Exception, err:
-                        print str(err)
-                        print 'TU Wien server is down or does not have needed'+\
-                              ' files. Trying Canadian stuff..'
+                    except Exception as err:
+                        print(str(err))
+                        print('TU Wien server is down or does not have needed'+
+                              ' files. Trying Canadian stuff..')
                         try:
                             met_url = 'http://unb-vmf1.gge.unb.ca/pub/unbvmfG/'+\
                                       str(year) + '/UNB' + vmf_grid_file + hh
@@ -11824,9 +11815,9 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                             with open(meteo_cat+'/'+vmf_grid_file+hh,'w') as out:
                                 for line in met_file:
                                     out.write(line)
-                        except Exception, err:
-                            print str(err)
-                            print 'no vmf1 grid data this time'
+                        except Exception as err:
+                            print(str(err))
+                            print('no vmf1 grid data this time')
 
     ''' ionospheric data '''
     if do_ion_calc:
@@ -11837,7 +11828,7 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
             # download and uncompress the ionex files, if necessary
             ionex_zip = iono_model+'g{:03d}'.format(doy)+'0.'+str(year)[2:]+'i.Z'
             if not os.path.isfile(os.path.join(ion_cat, ionex_zip[:-2])):
-                print 'iono TEC file: '+ionex_zip+' not found, fetching...'
+                print('iono TEC file: '+ionex_zip+' not found, fetching...')
                 try:
                     ftp = FTP('cddis.nasa.gov')
                     ftp.login() # user anonymous, passwd anonymous
@@ -11846,7 +11837,7 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                         ftp.retrbinary('RETR {:s}'.format(ionex_zip),
                                        open(os.path.join(ion_cat, ionex_zip), 'wb').write)
                         # uncompress: [try uncompress and gzip]
-                        print 'uncompressing: ' + ionex_zip + '...'
+                        print('uncompressing: ' + ionex_zip + '...')
                         try:
                             subprocess.call(['uncompress', '-f',
                                              '{:s}'.format(os.path.join(ion_cat, ionex_zip))])
@@ -11860,13 +11851,12 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                                 print('not found a program to uncompress .Z files. '+
                                       'install uncompress or gzip')
                     else:
-                        print 'file {:s} not found on the server. no iono this time'.\
-                                format(ionex_zip)
+                        print('file {:s} not found on the server. no iono this time'.format(ionex_zip))
                     ftp.quit()
 
-                except Exception, err:
-                    print str(err)
-                    print 'no ionosphere this time'
+                except Exception as err:
+                    print(str(err))
+                    print('no ionosphere this time')
 
 '''
 #==============================================================================
@@ -11880,10 +11870,10 @@ def eop_update(cat_eop, n=0):
               datetime.datetime.utcfromtimestamp(os.path.getmtime(cat_eop))
         if age.days > n:
             do_update = True
-            print 'EOP file: '+cat_eop+' is out of date, updating...'
+            print('EOP file: '+cat_eop+' is out of date, updating...')
     else:
         do_update = True
-        print 'EOP file: '+cat_eop+' is missing, fetching...'
+        print('EOP file: '+cat_eop+' is missing, fetching...')
     # if the file is older than n days:
     if do_update:
         try:
@@ -11892,9 +11882,8 @@ def eop_update(cat_eop, n=0):
             ftp.cwd('iers/series/opa')
             ftp.retrbinary('RETR eopc04_IAU2000', open(cat_eop, 'wb').write)
             ftp.quit()
-        except Exception, err:
-            print str(err)
-            pass
+        except Exception as err:
+            print(str(err))
 
 
 #==============================================================================
@@ -11916,7 +11905,7 @@ def vint_s(ob):
     # the output goes straight into the _out dir.
 
     # tell the user what you're doing
-    print ob
+    print(ob)
 
     ''' load input sittings: '''
     inp = ob.inp
@@ -12005,10 +11994,9 @@ def vint_s(ob):
             freq_ramp = np.array(freqRamp(cat_dir=inp['f_ramp1w'],
                                           sc=ob.source.lower(), tx_type='1way'))
             freq_type = 'proper'
-        except Exception, err:
-            print str(err)
-            print 'No ramp table found for 1-way Tx of {:s}, trying sc.freq...'\
-                    .format(ob.source.lower())
+        except Exception as err:
+            print(str(err))
+            print('No ramp table found for 1-way Tx of {:s}, trying sc.freq...'.format(ob.source.lower()))
             try:
                 freq, freq_type = freqConst(cat_file=inp['f_gc'], sc=ob.source.lower())
                 freq_ramp = None
@@ -12022,9 +12010,9 @@ def vint_s(ob):
             doup(inp['do_trp_calc'], inp['do_ion_calc'],
                  inp['cat_eop'], inp['meteo_cat'], inp['ion_cat'],
                  ob.tstamps[0], ob.tstamps[-1], inp['iono_model'])
-        except Exception, err:
-            print str(err)
-            print 'catalogue update failed'
+        except Exception as err:
+            print(str(err))
+            print('catalogue update failed')
     else:
 #        print 'no internet connection. can\'t update catalogues'
         pass
@@ -12058,10 +12046,9 @@ def vint_s(ob):
         for ii, st in enumerate(sta):
             try:
                 sta[ii].addMet(ob.tstamps[0], ob.tstamps[-1], inp)
-            except Exception, err:
-                print str(err)
-                print 'No troposphere for ' + st.name + \
-                      ' this time. Sorry about that..'
+            except Exception as err:
+                print(str(err))
+                print('No troposphere for ' + st.name + ' this time. Sorry about that..')
                 # check met-params len when calculating tropo delay later!
                 continue
 
@@ -12069,9 +12056,9 @@ def vint_s(ob):
     if inp['do_ion_calc']:
         try:
             iono = ion(ob.tstamps[0], ob.tstamps[-1], inp)
-        except Exception, err:
-            print str(err)
-            print 'Unable to load vTEC data. Ionospheric delay will not be computed.'
+        except Exception as err:
+            print(str(err))
+            print('Unable to load vTEC data. Ionospheric delay will not be computed.')
             inp['do_ion_calc'] = False
 
 
@@ -12282,10 +12269,9 @@ def vint_s(ob):
                                                      freq_ramp[:, 1] >= tstamp-2*lt), :][0]
                 # print lt, rampTslot
                 upSta = rampTslot[4]
-            except Exception, err:
-                print str(err)
-                raise Exception('Not found ramp params for '+
-                                ob.source+' at ' + str(tstamp))
+            except Exception as err:
+                print(str(err))
+                raise Exception('Not found ramp params for ' + ob.source + ' at ' + str(tstamp))
 
         ''' coarse! f ramp table for 1-way deep space Doppler (for iono) '''
         if ob.sou_type!='C' and inp['doppler_calc'] and \
@@ -12308,8 +12294,8 @@ def vint_s(ob):
                                 freq_ramp[:,0]<=astro_tstamp.tdb.datetime-lt,\
                                 freq_ramp[:,1]>=astro_tstamp.tdb.datetime-lt),:][0]
 #                print rampTslot#, _time()-tic
-            except Exception, err:
-                print str(err)
+            except Exception as err:
+                print(str(err))
                 raise Exception('Not found ramp params for '+ob.source+' at ' + str(tstamp))
 
         ''' delays due to instrumental and propagation effects '''
@@ -12794,7 +12780,7 @@ def load_cats(inp, sou_name, sou_type, sta_names, date_t_start, sou_radec=None):
     sou = source(sou_name, sou_type) # init source object
     # check source name
 #    if sou.name.lower()[0] == 'j' or sou.name.lower()[0] == 'w':
-    if sou.sou_type=='C':
+    if sou.sou_type == 'C':
         with open(inp['source_nam'], 'r') as f: #open cat with alternative sou names
             f_lines = f.readlines()
         # remove comments
@@ -12810,7 +12796,7 @@ def load_cats(inp, sou_name, sou_type, sta_names, date_t_start, sou_radec=None):
 #                sou.ivsname = f_line[0:8]
 #                break
     # far-field source position:
-    if sou.sou_type=='C':
+    if sou.sou_type == 'C':
         with open(inp['source_cat'], 'r') as f: #open cat with alternative sou names
             f_lines = f.readlines()
         if not any(sou.ivsname.lower() in s.lower() for s in f_lines):
@@ -12818,9 +12804,9 @@ def load_cats(inp, sou_name, sou_type, sta_names, date_t_start, sou_radec=None):
                 raise Exception('Source position for '+sou.name+\
                                 ' not found in '+inp['source_cat']+'.')
             else:
-                print 'Source position for '+sou.name+\
-                      ' not found in '+inp['source_cat']+'. '+\
-                      'Using the one from the vex-file.'
+                print('Source position for '+sou.name+
+                      ' not found in '+inp['source_cat']+'. '+
+                      'Using the one from the vex-file.')
 #                sou.radec.append(sou_radec[0])
 #                sou.radec.append(sou_radec[1])
                 sou.ra = sou_radec[0]
@@ -12888,8 +12874,8 @@ def load_cats(inp, sou_name, sou_type, sta_names, date_t_start, sou_radec=None):
     # antennae Thermal deformations coefficients + some auxiliary info, e.g. mount type
             if not any(st.name in s for s in thermdef_lines):
                 #raise Exception('Antenna therm_def data for '+st.name+' not found.')
-                print 'Antenna therm_def and auxiliary data for '+st.name+' not found.'
-                print 'Set mount type for {:s} to AltAz.'.format(st.name)
+                print('Antenna therm_def and auxiliary data for '+st.name+' not found.')
+                print('Set mount type for {:s} to AltAz.'.format(st.name))
                 st.mount_type = 'MO_AZEL'
             else:
                 for f_line in thermdef_lines:
@@ -13011,8 +12997,7 @@ def geodetic(sta, const):
         st.v = st.r_GTRS_date[2]*1e-3
         # Compute geodetic latitude and height.
         # The geodetic longitude is equal to the geocentric longitude
-        st.lat_geod, st.h_geod = geoid( req, st.r_GTRS_date[2], \
-                                        const.AE, const.F )
+        st.lat_geod, st.h_geod = geoid(req, st.r_GTRS_date[2], const.AE, const.F)
         # Compute the local VEN-to-crust-fixed rotation matrices by rotating
         # about the geodetic latitude and the longitude.
         # w - rotation matrix by an angle lat_geod around the y axis
@@ -14094,6 +14079,7 @@ def ST1ISEM (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
 
     return XCORSTA
 
+
 def ST1L1 (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     '''
     +
@@ -14644,9 +14630,9 @@ def hardisp_calc(amp_ocean, phs_ocean, vw, t, r2000):
     # displacements. Note that the same frequencies are returned each time.
     #
     # BLQ format order is vertical, horizontal EW, horizontal NS
-    AZ, _, PZ, _ = admint2(amp_ocean[:,0],IDT,-phs_ocean[:,0],ntin,it)
-    AW, _, PW, _ = admint2(amp_ocean[:,1],IDT,-phs_ocean[:,1],ntin,it)
-    AS, F, PS, ntout = admint2(amp_ocean[:,2],IDT,-phs_ocean[:,2],ntin,it)
+    AZ, _, PZ, _ = admint2(amp_ocean[:, 0], IDT, -phs_ocean[:, 0], ntin, it)
+    AW, _, PW, _ = admint2(amp_ocean[:, 1], IDT, -phs_ocean[:, 1], ntin, it)
+    AS, F, PS, ntout = admint2(amp_ocean[:, 2], IDT, -phs_ocean[:, 2], ntin, it)
 
     # set up for recursion, by normalizing frequencies, and converting
     # phases to radians
@@ -15011,7 +14997,7 @@ def mount_tel(sta, r2000, el, az, T, P, H, const):
         w2 = RICHM[1]*const.CDEGRAD
         unit_I = np.array([sin(w1), -cos(w1)*sin(w2), cos(w1)*cos(w2)])
     else:
-        print 'Unknown mount type for {:s}, guessing AltAz'.format(sta.name)
+        print('Unknown mount type for {:s}, guessing AltAz'.format(sta.name))
         unit_I = np.array([1.0, 0.0, 0.0]) # xyz (VEN)
 
     # Correct the aberrated topocentric source unit vector for
@@ -15790,7 +15776,7 @@ def delay_iers(tjd, CT, r_1, r_2, v_2, earth, sun, K_s, jpl_eph, \
 #==============================================================================
 #
 #==============================================================================
-def delay_ra(tjd, CT, UTC, r_1, r_2, v_2, a_2, r_3, earth, sun,\
+def delay_ra(tjd, CT, UTC, r_1, r_2, v_2, a_2, r_3, earth, sun,
              K_s, jpl_eph, GM, TDB_TCB, L_C, C, AE, uv=False):
     '''
     VLBI delay calculation following Vlasov, Zharov, Sazhin (2012)
@@ -16131,15 +16117,14 @@ def delay_moyer(tjd, t_1, dd, r_1, r_2, v_2, a_2, state_ss, tdb, bcrs,
             ( 1 - (norm(earth[:,1])**2/2.0 + \
                    dot(earth[:,1],v_2) + U)/C**2) / (1.0 - L_C) - \
                  dot(earth[:,1],r_2-r_1)/C**2
-    print 't2_t1 = {:.18f}'.format(t2_t1)
+    # print('t2_t1 = {:.18f}'.format(t2_t1))
     # Myself
     t2_t1 = ( T2_T1 * \
              ( 1 - ((norm(earth[:,1])**2)/2.0 + U)/C**2) / (1.0 - L_C) - \
              dot(earth[:,1],r_2-r_1)/C**2 ) / \
              ( 1 + dot(earth[:,1],v_2) / C**2 )
-#    print T2_T1
-    print 't2-t1 = {:.18f}'.format(t2_t1)
-#    raw_input()
+   # print(T2_T1)
+   # print('t2-t1 = {:.18f}'.format(t2_t1))
 
     return t2_t1
 
@@ -16147,6 +16132,8 @@ def delay_moyer(tjd, t_1, dd, r_1, r_2, v_2, a_2, state_ss, tdb, bcrs,
 #==============================================================================
 # Station short names
 #==============================================================================
+
+
 def shname(staz, shnames_cat, shnames_cat_igs=None):
     '''
     Station short names
@@ -16172,15 +16159,14 @@ def shname(staz, shnames_cat, shnames_cat_igs=None):
                     if line[:8].strip() == sta]
         if len(matching)==0:
             if shnames_cat_igs is None:
-                raise Exception('Short name for station '+sta+' not found.\n'+\
-                                'Check catalogue '+shnames_cat+'.')
-            print 'Short name for station '+sta+' not found in '+shnames_cat
-            print 'Trying IGS catalogue '+shnames_cat_igs
+                raise Exception('Short name for station '+sta+' not found.\n' + 'Check catalogue '+shnames_cat+'.')
+            print('Short name for station '+sta+' not found in '+shnames_cat)
+            print('Trying IGS catalogue '+shnames_cat_igs)
 #            print [line[4:12].strip() for line in cat_igs_lines]
             matching = [line for line in cat_igs_lines \
                     if line[4:12].strip() == sta]
             matching = matching[-1].split()[0].strip()
-            print matching
+            print(matching)
             if len(matching)==0:
                 raise Exception('Short name for station '+sta+' not found.\n'+\
                   'Check catalogues '+shnames_cat+', '+shnames_cat_igs+'.')
@@ -16194,6 +16180,8 @@ def shname(staz, shnames_cat, shnames_cat_igs=None):
 #==============================================================================
 # Station long names
 #==============================================================================
+
+
 def loname(staz, shnames_cat, shnames_cat_igs=None):
     '''
     Station short names
@@ -16221,13 +16209,13 @@ def loname(staz, shnames_cat, shnames_cat_igs=None):
             if shnames_cat_igs is None:
                 raise Exception('Long name for station '+sta+' not found.\n'+\
                                 'Check catalogue '+shnames_cat+'.')
-            print 'Long name for station '+sta+' not found in '+shnames_cat
-            print 'Trying IGS catalogue '+shnames_cat_igs
+            print('Long name for station '+sta+' not found in '+shnames_cat)
+            print('Trying IGS catalogue '+shnames_cat_igs)
 #            print [line[4:12].strip() for line in cat_igs_lines if line[0]!='*']
             matching = [line for line in cat_igs_lines \
                     if line[:4].strip().lower() == sta.lower()]
             matching = matching[-1].split()[1].strip()
-            print matching
+            print(matching)
             if len(matching)==0:
                 raise Exception('Long name for station '+sta+' not found.\n'+\
                   'Check catalogues '+shnames_cat+', '+shnames_cat_igs+'.')
@@ -16241,306 +16229,9 @@ def loname(staz, shnames_cat, shnames_cat_igs=None):
 #==============================================================================
 #
 #==============================================================================
-def delay_nf_moyer_depricated(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
-                    sta1, sta2, inp, t_1_UTC):
-    """
-    NF delay calculation
-
-    TODO: to be removed in the next release
-    """
-    debug = False
-
-    GM = const.GM
-    C = const.C
-    L_C = const.L_C
-    r_1 = sta1.r_GCRS
-
-    earth = state_ss_t1[2]
-    sun = state_ss_t1[-1]
-
-    # Find potential U:
-    U = GM[10]/norm(sun[:,0]-earth[:,0])
-#    if debug: print 'U = {:.18f}'.format(U)
-
-    # BCRS radius vectors of the first reception site at t_1:
-    R_1 = earth[:,0] + (1.0 - U/(C**2) - L_C)*r_1 - \
-          dot(earth[:,1], r_1)*earth[:,1] / (2.0*C**2)
-
-    ''' calculate downleg light-time from S/C to Receiver
-        to find signal transmission t_0 time given the reception time t_1
-    '''
-    precision = 1e-16
-    n_max = 3
-    lag_order = 9
-
-    # initial approximation:
-    nn = 0
-    lt_01_tmp = 0.0
-
-    # s/c:
-    t_1, dd = t_1_days*86400, dd_days*86400
-    x, _ = lagint(lag_order, tdb, bcrs[:,6], dd+t_1)
-    y, _ = lagint(lag_order, tdb, bcrs[:,7], dd+t_1)
-    z, _ = lagint(lag_order, tdb, bcrs[:,8], dd+t_1)
-    vx, _ = lagint(lag_order, tdb, bcrs[:,9], dd+t_1)
-    vy, _ = lagint(lag_order, tdb, bcrs[:,10], dd+t_1)
-    vz, _ = lagint(lag_order, tdb, bcrs[:,11], dd+t_1)
-    R_0 = np.hstack((x,y,z))
-    V_0 = np.hstack((vx,vy,vz))
-
-    if debug: print 't_1 = {:.18f}'.format(t_1)
-    lt_01 = (norm(R_1 - R_0)/C)
-    if debug: print 'lt_01 = {:.18f}'.format(lt_01)
-    t_0 = t_1 - lt_01
-    if debug: print 't_0_0 = {:.18f}'.format(t_0)
-
-    while (abs(lt_01 - lt_01_tmp) > precision) and (nn < n_max):
-        lt_01_tmp = lt_01
-        t_0 = t_1 - lt_01
-
-        x, _ = lagint(lag_order, tdb, bcrs[:,6], dd+t_0)
-#        x, _ = lagint(lag_order, tdb/86400.0, bcrs[:,6], (dd+t_0)/86400.0)
-        y, _ = lagint(lag_order, tdb, bcrs[:,7], dd+t_0)
-        z, _ = lagint(lag_order, tdb, bcrs[:,8], dd+t_0)
-        vx, _ = lagint(lag_order, tdb, bcrs[:,9], dd+t_0)
-        vy, _ = lagint(lag_order, tdb, bcrs[:,10], dd+t_0)
-        vz, _ = lagint(lag_order, tdb, bcrs[:,11], dd+t_0)
-        R_0 = np.hstack((x,y,z))
-        V_0 = np.hstack((vx,vy,vz))
-
-        # vector needed for RLT calculation
-        R_01 = R_1 - R_0
-
-        # >> SS bodies
-        RLT = 0.0
-        for ii, state in enumerate(state_ss_t1):
-            if not (ii==2 and norm(r_1)==0.0):
-                rb = state[:,0]
-                vb = state[:,1]
-                R_0_B  = R_0 - (rb - lt_01*vb)
-                R_1_B  = R_1 - rb
-                R_01_B = R_1_B - R_0_B
-    #            print R_0_B, R_1_B, R_01_B
-                if debug:
-                    print 'rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
-                      log(  ( norm(R_0_B) + norm(R_1_B) + norm(R_01_B) +
-                              2.0*GM[ii]/C**2 ) / \
-                            ( norm(R_0_B) + norm(R_1_B) - norm(R_01_B) +
-                              2.0*GM[ii]/C**2 ) ))
-                RLT += (2.0*GM[ii]/C**3) * \
-                      log(  ( norm(R_0_B) + norm(R_1_B) + norm(R_01_B) +
-                              2.0*GM[ii]/C**2 ) / \
-                            ( norm(R_0_B) + norm(R_1_B) - norm(R_01_B) +
-                              2.0*GM[ii]/C**2 ) )
-
-        lt_01 = lt_01 - (lt_01 - norm(R_01)/C - RLT) / \
-                    ( 1.0 - dot(R_01, V_0)/(C*norm(R_01)) )
-
-        t_0 = t_1 - lt_01
-        if debug: print 't_0 = {:.18f}'.format(t_0)
-        nn += 1
-        if debug: print 'delta = {:.18f}'.format(abs(lt_01 - lt_01_tmp))
-
-    x, _ = lagint(lag_order, tdb, bcrs[:,6], dd+t_0)
-    y, _ = lagint(lag_order, tdb, bcrs[:,7], dd+t_0)
-    z, _ = lagint(lag_order, tdb, bcrs[:,8], dd+t_0)
-    vx, _ = lagint(lag_order, tdb, bcrs[:,9], dd+t_0)
-    vy, _ = lagint(lag_order, tdb, bcrs[:,10], dd+t_0)
-    vz, _ = lagint(lag_order, tdb, bcrs[:,11], dd+t_0)
-    R_0 = np.hstack((x,y,z))
-    V_0 = np.hstack((vx,vy,vz))
-
-    if debug:
-        print 't_0 = {:.18f}'.format(t_0)
-        print 'RLT = {:.18f}'.format(RLT)
-        print 't_1 = {:.18f}'.format(t_1)
-        print 'dd = {:.18f}'.format(dd)
-
-    ''' B/GCRS state of second reception station at t_1'''
-    # BCRS radius vectors of the transmitting site at t_1:
-    r_2 = sta2.r_GCRS
-    v_2 = sta2.v_GCRS
-    a_2 = sta2.a_GCRS
-    R_2_t_1 = earth[:,0] + (1.0 - U/(C**2) - L_C)*r_2 - \
-              dot(earth[:,1], r_2)*earth[:,1] / (2.0*C**2)
-    V_2_t_1 = earth[:,1] + \
-            (1.0 - 2.0*U/C**2 - 0.5*(norm(earth[:,1])/C)**2 -
-             dot(earth[:,1], v_2)/C**2) * v_2 - \
-            0.5*dot(earth[:,1], v_2)*earth[:,1]/C**2
-    A_2_t_1 = earth[:,2] + \
-            (1.0 - 3.0*U/C**2 - (norm(earth[:,1])/C)**2 + L_C -
-             2.0*dot(earth[:,1], v_2)/C**2) * a_2 - \
-            0.5*dot(earth[:,1], a_2)*(earth[:,1] + 2.0*v_2)/C**2
-
-#    print 'R2_t1 = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*R_2_t_1)
-
-    if debug:
-        print R_2_t_1
-        print V_2_t_1
-        print A_2_t_1
-        print 'lalala\n'
-    ##############
-
-    ''' BCRS state vectors of celestial bodies at t_0, [m, m/s]: '''
-    ## Earth:
-    rrd = pleph(jd+t_0/86400.0, 3, 12, inp['jpl_eph'])
-    earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
-    # Earth's acceleration in m/s**2:
-    v_plus = np.array(pleph(jd+t_0/86400.0+1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
-    v_minus = np.array(pleph(jd+t_0/86400.0-1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
-    a = (v_plus - v_minus)*1e3 / 2.0
-    a = np.array(np.matrix(a).T)
-    earth = np.hstack((earth, a))
-    ## Sun:
-    rrd = pleph(jd+t_0/86400.0, 11, 12, inp['jpl_eph'])
-    sun = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
-    ## Moon:
-    rrd = pleph(jd+t_0/86400.0, 10, 12, inp['jpl_eph'])
-    moon = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
-
-    state_ss_t0 = []
-    for jj in (1, 2, 4, 5, 6, 7, 8, 9):
-        rrd = pleph(jd+t_0/86400.0, jj, 12, inp['jpl_eph'])
-        state_ss_t0.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
-    state_ss_t0.insert(2,earth)
-    state_ss_t0.append(moon)
-    state_ss_t0.append(sun)
-
-    # initial approximation
-    nn = 0
-    lt_02 = norm(R_2_t_1 - R_0)/C
-
-    t_2 = t_0 + lt_02
-    if debug: print 'initial t_2 = {:.18f}'.format(t_2)
-#    lt_02_tmp = 0.0
-    t_2_tmp = 0.0
-
-#    while (abs(lt_02 - lt_02_tmp) > precision) and (nn < n_max):
-    while (abs(t_2 - t_2_tmp) > precision) and (nn < n_max):
-        # if debug: print 'lt_02 - lt_02_tmp = {:.18f}'.format(lt_02 - lt_02_tmp)
-        # lt_02_tmp = deepcopy(lt_02)
-        if debug: print 't_2 - t_2_tmp = {:.18f}'.format(t_2 - t_2_tmp)
-        t_2_tmp = deepcopy(t_2)
-
-        R_2 = R_2_t_1 + V_2_t_1*(t_2-t_1) + 0.5*A_2_t_1*(t_2-t_1)**2
-        V_2 = V_2_t_1 + A_2_t_1*(t_2-t_1)
-
-        R_02 = R_2 - R_0
-
-        # >> SS bodies
-        ## Earth:
-        rrd = pleph(jd+t_2/86400.0, 3, 12, inp['jpl_eph'])
-        earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
-        ## Sun:
-        rrd = pleph(jd+t_2/86400.0, 11, 12, inp['jpl_eph'])
-        sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
-        ## Moon:
-        rrd = pleph(jd+t_2/86400.0, 10, 12, inp['jpl_eph'])
-        moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
-
-        state_ss_t2 = []
-        for jj in (1,2,4,5,6,7,8,9):
-            rrd = pleph(jd+t_2/86400.0, jj, 12, inp['jpl_eph'])
-            state_ss_t2.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
-        state_ss_t2.insert(2,earth)
-        state_ss_t2.append(moon)
-        state_ss_t2.append(sun)
-
-        RLT = 0.0
-        for ii, (state_t0, state_t2) in enumerate(zip(state_ss_t0,state_ss_t2)):
-            if not (ii==2 and norm(r_2)<1e-3):
-                rb_t0 = state_t0[:,0]
-                rb_t2 = state_t2[:,0]
-                R_0_B  = R_0 - rb_t0
-                R_2_B  = R_2 - rb_t2
-                R_02_B = R_2_B - R_0_B
-                if debug:
-                    print 'rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
-                      log(  ( norm(R_2_B) + norm(R_0_B) + norm(R_02_B) + \
-                              2.0*GM[ii]/C**2 ) / \
-                            ( norm(R_2_B) + norm(R_0_B) - norm(R_02_B) + \
-                              2.0*GM[ii]/C**2 ) ))
-                RLT += (2.0*GM[ii]/C**3) * \
-                      log(  ( norm(R_2_B) + norm(R_0_B) + norm(R_02_B) + \
-                              2.0*GM[ii]/C**2 ) / \
-                            ( norm(R_2_B) + norm(R_0_B) - norm(R_02_B) + \
-                              2.0*GM[ii]/C**2 ) )
-
-        t_2 = t_2 - (t_2 - t_0 - norm(R_02)/C - RLT) / \
-                    ( 1.0 + dot(R_02, V_2)/(C*norm(R_02)) )
-
-#        lt_02 = lt_02 - (lt_02 - norm(R_02)/C - RLT) / \
-#                    ( 1.0 - dot(R_02, V_2)/(C*norm(R_02)) )
-#        t_2 = t_0 + lt_02
-
-        nn += 1
-        if debug: print 't_2 = {:.18f}'.format(t_2)
-
-    if debug: print 'final t_2 = {:.18f}'.format(t_2)
-
-    if debug: print 'f(x)=0?: {:.18f}'.format(t_2 - t_0 - norm(R_02)/C - RLT)
-
-    # gravitational effect on the ray path from Fukushima
-    R_0_1 = R_0 - R_1
-    R_0_2 = R_0 - R_2
-    T_g_21 = 0.0
-    for ii, (state_t0, state_t1, state_t2) in \
-                enumerate(zip(state_ss_t0, state_ss_t1, state_ss_t2)):
-        if ii!=2:
-            rb_t0 = state_t0[:,0]
-            rb_t1 = state_t1[:,0]
-            rb_t2 = state_t2[:,0]
-            R_0_B = R_0 - rb_t0
-            R_1_B = R_1 - rb_t1
-            R_2_B = R_2 - rb_t2
-            T_g_21 += (2.0*GM[ii]/C**3) * \
-                  log( (norm(R_2_B) + norm(R_0_B) + norm(R_0_2)) *\
-                       (norm(R_1_B) + norm(R_0_B) - norm(R_0_1)) /\
-                       (norm(R_2_B) + norm(R_0_B) - norm(R_0_2)) /
-                       (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)) )
-            if debug:
-                print 'i={:d}, T_g_21_i = {:.18f}'.format(ii, (2.0*GM[ii]/C**3) * \
-                  log( (norm(R_2_B) + norm(R_0_B) + norm(R_0_2)) *\
-                       (norm(R_1_B) + norm(R_0_B) - norm(R_0_1)) /\
-                       (norm(R_2_B) + norm(R_0_B) - norm(R_0_2)) /
-                       (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)) ))
-
-#    raw_input()
-#     astropy_t_2 = Time(jd - 2400000.5, t_2/86400.0,
-#                format='mjd', scale='tdb', precision=9,
-#                 location=EarthLocation.from_geocentric(*sta2.r_GTRS, unit=units.m))
-    astropy_t_2 = Time(jd - 2400000.5, (t_2+T_g_21)/86400.0,
-                format='mjd', scale='tdb', precision=9,
-                 location=EarthLocation.from_geocentric(*sta2.r_GTRS, unit=units.m))
-#    print 't_1 = {:.18f}'.format(t_1)
-#    astropy_t_1 = Time(jd - 2400000.5, t_1/86400.0, \
-#                format='mjd', scale='tdb', precision=9, \
-#                 location=EarthLocation.from_geocentric(*sta1.r_GTRS, \
-#                                                         unit=units.m))
-#    astropy_t_1_a = Time(jd - 2400000.5, t_1_UTC, \
-#                format='mjd', scale='utc', precision=9, \
-#                 location=EarthLocation.from_geocentric(*sta1.r_GTRS, \
-#                                                         unit=units.m))
-#    print '{:.18f}'.format(t_1_UTC), '{:.18f}'.format(astropy_t_1.utc.jd2), \
-#                                       '{:.18f}'.format(astropy_t_1_a.utc.jd2)
-#    print '{:.18f}'.format(t_1_UTC*86400.0), \
-#                                    astropy_t_1.utc.iso, astropy_t_1_a.utc.iso
-#    print '{:.18f}'.format(t_1_days), '{:.18f}'.format(astropy_t_1_a.tdb.jd2)
-#    print (t_1_UTC - astropy_t_1.utc.jd2)*86400.0
-
-    t_2_UTC = astropy_t_2.utc.jd2
-#    t_2_UTC = astropy_t_2.utc.mjd - np.floor(astropy_t_2.utc.mjd)
-#    if t_2_UTC<0: t_2_UTC += 1
-#    print t_2_UTC, astropy_t_2.utc.jd1, jd, t_1_UTC, dd_days
-    # fixes on a day change
-    if astropy_t_2.utc.jd1 < jd and t_2_UTC>0: t_2_UTC -= 1
-    if astropy_t_2.utc.jd1 > jd and t_2_UTC<0: t_2_UTC += 1
-#    if debug: print 't_2_UTC = {:.18f}'.format(t_2_UTC*86400.0)
-    return (t_2_UTC-t_1_UTC)*86400.0
 
 
-def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
-                   sta1, sta2, inp):
+def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, sta2, inp):
     """
     NF delay calculation following Moyer/Duev
 
@@ -16559,7 +16250,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
 
     # Find potential U:
     U = GM[10] / norm(sun[:, 0] - earth[:, 0])
-    if debug: print 'U = {:.18f}'.format(U)
+    if debug: print('U = {:.18f}'.format(U))
 
     # BCRS radius vectors of the first reception site at t_1:
     R_1 = earth[:, 0] + (1.0 - U / (C ** 2) - L_C) * r_1 - \
@@ -16584,10 +16275,10 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     #    print 'R2_t1 = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*R_2_t_1)
 
     if debug:
-        print R_2_t_1
-        print V_2_t_1
-        print A_2_t_1
-        print 'lalala\n'
+        print(R_2_t_1)
+        print(V_2_t_1)
+        print(A_2_t_1)
+        print('lalala\n')
         ##############
 
     ''' simultaneously solve for light-time from S/C to Receiver 1 and 2
@@ -16620,18 +16311,17 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     R_0 = np.hstack((x, y, z))
     # V_0 = np.hstack((vx, vy, vz))
 
-    if debug: print 't_1 = {:.18f}'.format(t_1)
+    if debug: print('t_1 = {:.18f}'.format(t_1))
     lt_01 = norm(R_1 - R_0) / C
-    if debug: print 'lt_01 = {:.18f}'.format(lt_01)
+    if debug: print('lt_01 = {:.18f}'.format(lt_01))
     t_0 = t_1 - lt_01
-    if debug: print 't_0_0 = {:.18f}'.format(t_0)
+    if debug: print('t_0_0 = {:.18f}'.format(t_0))
     lt_02 = norm(R_2_t_1 - R_0) / C
-    if debug: print 'lt_02 = {:.18f}'.format(lt_02)
+    if debug: print('lt_02 = {:.18f}'.format(lt_02))
     t_2 = t_0 + lt_02
-    if debug: print 't_2_0 = {:.18f}'.format(t_2)
+    if debug: print('t_2_0 = {:.18f}'.format(t_2))
 
-    while (abs(t_0 - t_0_tmp) > precision) and (abs(t_2 - t_2_tmp) > precision) \
-            and (nn < n_max):
+    while (abs(t_0 - t_0_tmp) > precision) and (abs(t_2 - t_2_tmp) > precision) and (nn < n_max):
         t_0_tmp = deepcopy(t_0)
         t_2_tmp = deepcopy(t_2)
 
@@ -16687,11 +16377,11 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                 R_1_B = R_1 - rb_t1
                 R_01_B = R_1_B - R_0_B
                 if debug:
-                    print 'rlt_01_{:d} = {:.18f}'.format(ii, (2.0 * GM[ii] / C ** 3) * \
+                    print('rlt_01_{:d} = {:.18f}'.format(ii, (2.0 * GM[ii] / C ** 3) * \
                                                  log((norm(R_1_B) + norm(R_0_B) + norm(R_01_B) +
                                                       2.0 * GM[ii] / C ** 2) / \
                                                      (norm(R_1_B) + norm(R_0_B) - norm(R_01_B) +
-                                                      2.0 * GM[ii] / C ** 2)))
+                                                      2.0 * GM[ii] / C ** 2))))
                 RLT_01 += (2.0 * GM[ii] / C ** 3) * \
                        log((norm(R_1_B) + norm(R_0_B) + norm(R_01_B) +
                             2.0 * GM[ii] / C ** 2) / \
@@ -16731,11 +16421,11 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                 R_2_B = R_2 - rb_t2
                 R_02_B = R_2_B - R_0_B
                 if debug:
-                    print 'rlt_02_{:d} = {:.18f}'.format(ii, (2.0 * GM[ii] / C ** 3) * \
+                    print('rlt_02_{:d} = {:.18f}'.format(ii, (2.0 * GM[ii] / C ** 3) * \
                                                  log((norm(R_2_B) + norm(R_0_B) + norm(R_02_B) +
                                                       2.0 * GM[ii] / C ** 2) / \
                                                      (norm(R_2_B) + norm(R_0_B) - norm(R_02_B) +
-                                                      2.0 * GM[ii] / C ** 2)))
+                                                      2.0 * GM[ii] / C ** 2))))
                 RLT_02 += (2.0 * GM[ii] / C ** 3) * \
                        log((norm(R_2_B) + norm(R_0_B) + norm(R_02_B) +
                             2.0 * GM[ii] / C ** 2) / \
@@ -16750,18 +16440,18 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                        [-1.0 + dot(R_02, V_0) / (C * norm(R_02)), 1.0 - dot(R_02, V_2) / (C * norm(R_02))]])
         f = np.array([[t_1 - t_0 - norm(R_01) / C - RLT_01],
                       [t_2 - t_0 - norm(R_02) / C - RLT_02]])
-        if debug: print 'J = ', J
-        if debug: print 'J^-1 = ', np.linalg.pinv(J)
-        if debug: print 'f = ', f
+        if debug: print('J = ', J)
+        if debug: print('J^-1 = ', np.linalg.pinv(J))
+        if debug: print('f = ', f)
         upd = np.array([[t_0], [t_2]]) - dot(np.linalg.pinv(J), f)
         t_0 = upd[0, 0]
         t_2 = upd[1, 0]
 
-        if debug: print 't_0 = {:.18f} (updated)'.format(t_0)
-        if debug: print 't_2 = {:.18f} (updated)'.format(t_2)
+        if debug: print('t_0 = {:.18f} (updated)'.format(t_0))
+        if debug: print('t_2 = {:.18f} (updated)'.format(t_2))
         nn += 1
-        if debug: print 'delta_t_0 = {:.18f}'.format(abs(t_0 - t_0_tmp))
-        if debug: print 'delta_t_2 = {:.18f}'.format(abs(t_2 - t_2_tmp))
+        if debug: print('delta_t_0 = {:.18f}'.format(abs(t_0 - t_0_tmp)))
+        if debug: print('delta_t_2 = {:.18f}'.format(abs(t_2 - t_2_tmp)))
 
     # x, _ = lagint(lag_order, tdb, bcrs[:, 6], dd + t_0)
     # y, _ = lagint(lag_order, tdb, bcrs[:, 7], dd + t_0)
@@ -16776,17 +16466,17 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     # V_0 = np.hstack((vx, vy, vz))
 
     if debug:
-        print '\nsummary:'
-        print 't_1 = {:.18f}'.format(t_1)
-        print 'dd = {:.18f}'.format(dd)
-        print 't_0 = {:.18f}'.format(t_0)
-        print 't_2 = {:.18f}'.format(t_2)
-        print 'RLT_01 = {:.18f}'.format(RLT_01)
-        print 'RLT_02 = {:.18f}'.format(RLT_02)
-        print 'tau_bc = {:.18f}'.format(t_2-t_1)
+        print('\nsummary:')
+        print('t_1 = {:.18f}'.format(t_1))
+        print('dd = {:.18f}'.format(dd))
+        print('t_0 = {:.18f}'.format(t_0))
+        print('t_2 = {:.18f}'.format(t_2))
+        print('RLT_01 = {:.18f}'.format(RLT_01))
+        print('RLT_02 = {:.18f}'.format(RLT_02))
+        print('tau_bc = {:.18f}'.format(t_2-t_1))
 
-    if debug: print 'f(x)=0?: {:.18f}'.format(t_1 - t_0 - norm(R_01) / C - RLT_01)
-    if debug: print 'f(x)=0?: {:.18f}'.format(t_2 - t_0 - norm(R_02) / C - RLT_02)
+    if debug: print('f(x)=0?: {:.18f}'.format(t_1 - t_0 - norm(R_01) / C - RLT_01))
+    if debug: print('f(x)=0?: {:.18f}'.format(t_2 - t_0 - norm(R_02) / C - RLT_02))
 
     R_2 = R_2_t_1 + V_2_t_1 * (t_2 - t_1) + 0.5 * A_2_t_1 * (t_2 - t_1) ** 2
     # V_2 = V_2_t_1 + A_2_t_1 * (t_2 - t_1)
@@ -16845,8 +16535,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     R_0_1 = R_0 - R_1
     R_0_2 = R_0 - R_2
     T_g_21 = 0.0
-    for ii, (state_t0, state_t1, state_t2) in \
-            enumerate(zip(state_ss_t0, state_ss_t1, state_ss_t2)):
+    for ii, (state_t0, state_t1, state_t2) in enumerate(zip(state_ss_t0, state_ss_t1, state_ss_t2)):
         if ii != 2:
             rb_t0 = state_t0[:, 0]
             rb_t1 = state_t1[:, 0]
@@ -16860,12 +16549,12 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                           (norm(R_2_B) + norm(R_0_B) - norm(R_0_2)) /
                           (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)))
             if debug:
-                print 'i={:d}, T_g_21_i = {:.18f}'.format(ii, (2.0 * GM[ii] / C ** 3) * \
+                print('i={:d}, T_g_21_i = {:.18f}'.format(ii, (2.0 * GM[ii] / C ** 3) * \
                                                           log((norm(R_2_B) + norm(R_0_B) + norm(R_0_2)) * \
                                                               (norm(R_1_B) + norm(R_0_B) - norm(R_0_1)) / \
                                                               (norm(R_2_B) + norm(R_0_B) - norm(R_0_2)) /
-                                                              (norm(R_1_B) + norm(R_0_B) + norm(R_0_1))))
-    if debug: print 'T_g_21 = {:.18f}'.format(T_g_21)
+                                                              (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)))))
+    if debug: print('T_g_21 = {:.18f}'.format(T_g_21))
 
     ''' TDB -> TAI '''
     earth = state_ss_t1[2]
@@ -16874,7 +16563,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     dtau = (t_2 - t_1 + T_g_21) * \
            (1.0 - (U + norm(earth[:, 1])**2/2.0 + dot(earth[:, 1], v_2))/C**2)/(1-L_C) - \
            dot(r_2 - r_1, earth[:, 1])/C**2
-    if debug: print 'tau_gc = {:.18f} (Fukushima)'.format(dtau)
+    if debug: print('tau_gc = {:.18f} (Fukushima)'.format(dtau))
 
     # transformation from Duev: [difference is < 10^-16 sec]
     if True is False:
@@ -16882,14 +16571,14 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                (1 - ((norm(earth[:, 1]) ** 2) / 2.0 + U) / C ** 2) / (1.0 - L_C) -
                 dot(earth[:, 1], r_2 - r_1) / C ** 2) / \
                     (1 + dot(earth[:, 1], v_2) / C ** 2)
-        if debug: print 'tau_gc = {:.18f} (Duev)'.format(dtau)
+        if debug: print('tau_gc = {:.18f} (Duev)'.format(dtau))
 
     # transformation from Petrov:
     if True is False:
         dtau = (1.0 - U/C**2 + norm(earth[:, 1])**2/2.0/C**2 + const.L_C - const.L_G) * \
                (t_2 - t_1 + T_g_21) - \
                dot(R_2 - R_1, earth[:, 1])/C**2
-        if debug: print 'tau_gc = {:.18f} (Petrov)'.format(dtau)
+        if debug: print('tau_gc = {:.18f} (Petrov)'.format(dtau))
 
     # astropy.time time difference:
     if True is False:
@@ -16900,7 +16589,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                            format='mjd', scale='tdb', precision=9,
                            location=EarthLocation.from_geocentric(*sta2.r_GTRS, unit=units.m))
         dtau = (astropy_t_2.tai - astropy_t_1.tai).sec
-        if debug: print 'tau_gc = {:.18f} (astropy)'.format(dtau)
+        if debug: print('tau_gc = {:.18f} (astropy)'.format(dtau))
 
     return dtau
 
@@ -16908,10 +16597,11 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
 #==============================================================================
 #
 #==============================================================================
-def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
-                       sta1, sta2):
+
+
+def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, sta2):
     """
-    NF delay calculation following Sekido and Fukushima
+    NF delay calculation following Sekido and Fukushima (2006)
     """
     debug = False
 
@@ -16961,11 +16651,11 @@ def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     R_0 = np.hstack((x,y,z))
     V_0 = np.hstack((vx,vy,vz))
 
-    if debug: print 't_1 = {:.18f}'.format(t_1)
+    if debug: print('t_1 = {:.18f}'.format(t_1))
     lt_01 = (norm(R_1 - R_0)/C)
-    if debug: print 'lt_01 = {:.18f}'.format(lt_01)
+    if debug: print('lt_01 = {:.18f}'.format(lt_01))
     t_0 = t_1 - lt_01
-    if debug: print 't_0_0 = {:.18f}'.format(t_0)
+    if debug: print('t_0_0 = {:.18f}'.format(t_0))
 
     while (abs(lt_01 - lt_01_tmp) > precision) and (nn < n_max):
         lt_01_tmp = lt_01
@@ -16995,11 +16685,11 @@ def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                 R_01_B = R_1_B - R_0_B
     #            print R_0_B, R_1_B, R_01_B
                 if debug:
-                    print 'rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
+                    print('rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
                       log(  ( norm(R_0_B) + norm(R_1_B) + norm(R_01_B) + \
                               2.0*GM[ii]/C**2 ) / \
                             ( norm(R_0_B) + norm(R_1_B) - norm(R_01_B) + \
-                              2.0*GM[ii]/C**2 ) ))
+                              2.0*GM[ii]/C**2 ) )))
                 RLT += (2.0*GM[ii]/C**3) * \
                       log(  ( norm(R_0_B) + norm(R_1_B) + norm(R_01_B) + \
                               2.0*GM[ii]/C**2 ) / \
@@ -17010,9 +16700,9 @@ def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                     ( 1.0 - dot(R_01, V_0)/(C*norm(R_01)) )
 
         t_0 = t_1 - lt_01
-        if debug: print 't_0 = {:.18f}'.format(t_0)
+        if debug: print('t_0 = {:.18f}'.format(t_0))
         nn += 1
-        if debug: print 'delta = {:.18f}'.format(abs(lt_01 - lt_01_tmp))
+        if debug: print('delta = {:.18f}'.format(abs(lt_01 - lt_01_tmp)))
 
     x, _ = lagint(lag_order, tdb, bcrs[:,6], dd+t_0)
     y, _ = lagint(lag_order, tdb, bcrs[:,7], dd+t_0)
@@ -17024,10 +16714,10 @@ def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     # V_0 = np.hstack((vx,vy,vz))
 
     if debug:
-        print 't_0 = {:.18f}'.format(t_0)
-        print 'RLT = {:.18f}'.format(RLT)
-        print 't_1 = {:.18f}'.format(t_1)
-        print 'dd = {:.18f}'.format(dd)
+        print('t_0 = {:.18f}'.format(t_0))
+        print('RLT = {:.18f}'.format(RLT))
+        print('t_1 = {:.18f}'.format(t_1))
+        print('dd = {:.18f}'.format(dd))
 
     # That's the confusing way Fukushima defines it. suck it off!
     R_0_1 = R_0 - R_1
@@ -17041,10 +16731,10 @@ def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
     H = dot(K, b)/(2.0*norm(R_0_2)) * norm(np.cross(V_2/C, R_2_hat))**2
 
     if debug:
-        print 'R_2_hat = {:s}'.format(R_2_hat)
-        print 'b = {:s}'.format(b)
-        print 'H = {:.18f}'.format(H)
-        print 'K = {:s}'.format(K)
+        print('R_2_hat = {:s}'.format(R_2_hat))
+        print('b = {:s}'.format(b))
+        print('H = {:.18f}'.format(H))
+        print('K = {:s}'.format(K))
 
     # gravitational effect on the ray path
     T_g_21 = 0.0
@@ -17061,23 +16751,23 @@ def delay_nf_fukushima(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const,
                        (norm(R_2_B) + norm(R_0_B) - norm(R_0_2)) /
                        (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)) )
             if debug:
-                print 'i={:d}, T_g_21_i = {:.18f}'.format(ii, (2.0*GM[ii]/C**3) * \
+                print('i={:d}, T_g_21_i = {:.18f}'.format(ii, (2.0*GM[ii]/C**3) * \
                   log( (norm(R_2_B) + norm(R_0_B) + norm(R_0_2)) *\
                        (norm(R_1_B) + norm(R_0_B) - norm(R_0_1)) /\
                        (norm(R_2_B) + norm(R_0_B) - norm(R_0_2)) /
-                       (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)) ))
+                       (norm(R_1_B) + norm(R_0_B) + norm(R_0_1)) )))
 
     if debug:
-        print 'T_g_21 = {:.18f}'.format(T_g_21)
+        print('T_g_21 = {:.18f}'.format(T_g_21))
 
     # delay in the TT-frame
-    V_E = earth[:,1]
+    V_E = earth[:, 1]
     dtau = (-(1 - 2*U/C**2 - \
             (norm(V_E)**2 + 2*dot(V_E,v_2))/(2*C**2))*dot(K,b)/C
             - dot(V_E, b)/C**2 * (1 + dot(R_2_hat, V_2)/C -
             dot(V_E+2*v_2, K)/(2*C)) + T_g_21) \
             / ((1 + dot(R_2_hat, V_2)/C)*(1 + H))
-    if debug: print 'dtau = {:.18f}'.format(dtau)
+    if debug: print('dtau = {:.18f}'.format(dtau))
 
     return dtau
 
@@ -17111,17 +16801,17 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 
     # Find potential U:
     U = GM[10]/norm(sun[:,0]-earth[:,0])
-    if debug: print 't_1 = {:.18f}'.format(t_1)
+    if debug: print('t_1 = {:.18f}'.format(t_1))
 
     # BCRS radius vectors of the reception site at t_1:
     R_1 = earth[:,0] + (1.0 - U/(C**2) - L_C)*r_1 - \
-          dot(earth[:,1],r_1)*earth[:,1] / (2.0*C**2)
+          dot(earth[:,1], r_1)*earth[:,1] / (2.0*C**2)
 #    V_1 = earth[:,1] + \
 #            (1.0 - 2.0*U/C**2 - 0.5*(norm(earth[:,1])/C)**2 - \
 #             dot(earth[:,1], v_1)/C**2) * v_1 - \
 #            0.5*dot(earth[:,1], v_1)*earth[:,1]/C**2
     V_1 = earth[:,1] + ( (1.0 - U/(C**2) - L_C)*v_1 - \
-          dot(earth[:,1],v_1)*earth[:,1] / (2.0*C**2) )* \
+          dot(earth[:,1], v_1)*earth[:,1] / (2.0*C**2) )* \
           (1.0 - (U + v_1**2/2.0 - L_C)/C**2)
 
 
@@ -17147,9 +16837,9 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     # V_0 = np.hstack((vx,vy,vz))
 
     lt_01 = (norm(R_1 - R_0)/C)
-    if debug: print 'lt_01 = {:.18f}'.format(lt_01)
+    if debug: print('lt_01 = {:.18f}'.format(lt_01))
     t_0 = t_1 - lt_01
-    if debug: print 't_0_0 = {:.18f}'.format(t_0)
+    if debug: print('t_0_0 = {:.18f}'.format(t_0))
 
     while (abs(lt_01 - lt_01_tmp) > precision) and (nn < n_max):
         lt_01_tmp = lt_01
@@ -17181,11 +16871,11 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
             R_01_B = R_1_B - R_0_B
 #            print R_0_B, R_1_B, R_01_B
             if debug:
-                print 'rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
+                print('rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
                   log(  ( norm(R_0_B) + norm(R_1_B) + norm(R_01_B) + \
                           2.0*GM[ii]/C**2 ) / \
                         ( norm(R_0_B) + norm(R_1_B) - norm(R_01_B) + \
-                          2.0*GM[ii]/C**2 ) ))
+                          2.0*GM[ii]/C**2 ) )))
             RLT += (2.0*GM[ii]/C**3) * \
                   log(  ( norm(R_0_B) + norm(R_1_B) + norm(R_01_B) + \
                           2.0*GM[ii]/C**2 ) / \
@@ -17196,9 +16886,9 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
                     ( 1.0 - dot(R_01, V_0)/(C*norm(R_01)) )
 
         t_0 = t_1 - lt_01
-        if debug: print 't_0 = {:.18f}'.format(t_0)
+        if debug: print('t_0 = {:.18f}'.format(t_0))
         nn += 1
-        if debug: print 'delta = {:.18f}'.format(abs(lt_01 - lt_01_tmp))
+        if debug: print('delta = {:.18f}'.format(abs(lt_01 - lt_01_tmp)))
 
     x, _ = lagint(lag_order, tdb, bcrs[:,6], dd+t_0)
     y, _ = lagint(lag_order, tdb, bcrs[:,7], dd+t_0)
@@ -17210,15 +16900,15 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     V_0 = np.hstack((vx,vy,vz))
 
     if debug:
-        print 't_0 = {:.18f}'.format(t_0)
-        print 'RLT = {:.18f}'.format(RLT)
-        print 't_1 = {:.18f}'.format(t_1)
-        print 'dd = {:.18f}'.format(dd)
+        print('t_0 = {:.18f}'.format(t_0))
+        print('RLT = {:.18f}'.format(RLT))
+        print('t_1 = {:.18f}'.format(t_1))
+        print('dd = {:.18f}'.format(dd))
 
     if debug:
         rrd = pleph(2456266.5+t_0/86400.0, 2, 12, 'jpl_eph/JPLEPH.421')*1e3
-        print 'xsat = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*(R_0-rrd[:3]))
-        print 'obs_sat = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*(R_1 - R_0))
+        print('xsat = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*(R_0-rrd[:3])))
+        print('obs_sat = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*(R_1 - R_0)))
 
     ''' BCRS state vectors of celestial bodies at t_0, [m, m/s]: '''
     ## Earth:
@@ -17239,10 +16929,10 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
 
     state_ss_t0 = []
-    for jj in (1,2,4,5,6,7,8,9):
+    for jj in (1, 2, 4, 5, 6, 7, 8, 9):
         rrd = pleph(JD+t_0/86400.0, jj, 12, inp['jpl_eph'])
         state_ss_t0.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
-    state_ss_t0.insert(2,earth)
+    state_ss_t0.insert(2, earth)
     state_ss_t0.append(moon)
     state_ss_t0.append(sun)
 
@@ -17256,7 +16946,8 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     GMnaR_o = 0.0
     z_sh = 0.0
     for ii, (state_t0, state_t1, gm) in enumerate(zip(state_ss_t0, state_ss_t1, GM)):
-        if ii==2 and norm(r_1)==0.0: continue
+        if ii == 2 and norm(r_1) == 0.0: 
+            continue
         rb_t0 = state_t0[:,0]
         vb_t0 = state_t0[:,1]
         rb_t1 = state_t1[:,0]
@@ -17297,7 +16988,7 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 #    fonafe /= UTC_to_proper
 
     ''' correct fonafe if f is given in GC (i.e. it's not proper): '''
-    if x_way=='one' and freq_type=='gc':
+    if x_way == 'one' and freq_type == 'gc':
 #        raise NotImplemented
         x, _ = lagint(lag_order, utc, gcrs[:,6], dd+t_utc-lt_01)
         y, _ = lagint(lag_order, utc, gcrs[:,7], dd+t_utc-lt_01)
@@ -17314,10 +17005,9 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
         fonafe /= (1 + L_G - ((norm(v_sc)**2)/2.0 + U_E_sc)/C**2)
         return fonafe, None
 
-    if x_way=='one':
+    if x_way == 'one':
         # transmission event in TDB (used if frequency is ramped):
-        astropy_t_0 = Time(tjd - 2400000.5, t_0/86400.0, \
-                            format='mjd', scale='tdb', precision=9)
+        astropy_t_0 = Time(tjd - 2400000.5, t_0/86400.0, format='mjd', scale='tdb', precision=9)
         return fonafe, astropy_t_0 # else simply pass
 
     ''' 2(3)-way Doppler:
@@ -17347,9 +17037,9 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 
     # initial approximation using R_2_t_1:
     lt_20 = (norm(R_0 - R_2_t_1)/C)
-    if debug: print 'lt_20_0 = {:.18f}'.format(lt_20)
+    if debug: print('lt_20_0 = {:.18f}'.format(lt_20))
     t_2 = t_0 - lt_20
-    if debug: print 't_2_0 = {:.18f}'.format(t_2)
+    if debug: print('t_2_0 = {:.18f}'.format(t_2))
 
 
     ###############
@@ -17361,10 +17051,8 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 #                 location=(sta2.lon_gcen*180/np.pi*units.deg, \
 #                           sta2.lat_geod*180/np.pi*units.deg,\
 #                           sta2.h_geod))
-    astropy_t_2 = Time(mjd, t_2/86400.0, \
-                format='mjd', scale='tdb', precision=9, \
-                 location=EarthLocation.from_geocentric(*sta2.r_GTRS, \
-                                                         unit=units.m))
+    astropy_t_2 = Time(mjd, t_2/86400.0, format='mjd', scale='tdb', precision=9, 
+                       location=EarthLocation.from_geocentric(*sta2.r_GTRS, unit=units.m))
     # t_2 might be negative. redefine JD and mjd therefore? wozu?
 #    if t_2 < 0:
 #        mjd = np.floor(astropy_t_2.utc.mjd)
@@ -17373,7 +17061,8 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 #    raw_input()
 #    UTC = astropy_t_2.utc.mjd - np.floor(astropy_t_2.utc.mjd)
     UTC = astropy_t_2.utc.jd2
-    if debug: print 'UTC = {:.18f}'.format(UTC)
+    if debug: 
+        print('UTC = {:.18f}'.format(UTC))
     mjd_keep = mjd
     if UTC<0:
 #        UTC, JD, mjd = UTC+1, JD-1, mjd-1
@@ -17382,12 +17071,13 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     ''' compute tai & tt '''
     TAI, TT = taitime(mjd, UTC)
     if debug:
-        print 'UTC = {:.18f}'.format(UTC)
-        print 'TAI = {:.18f}'.format(TAI)
-        print 'TT = {:.18f}'.format(TT)
+        print('UTC = {:.18f}'.format(UTC))
+        print('TAI = {:.18f}'.format(TAI))
+        print('TT = {:.18f}'.format(TT))
     ''' interpolate eops to tstamp '''
     UT1, eop_int = eop_iers(mjd, UTC, eops)
-    if debug: print 'UT1 = {:.18f}'.format(UT1)
+    if debug: 
+        print('UT1 = {:.18f}'.format(UT1))
 
     ''' compute coordinate time fraction of CT day at 2nd observing site '''
     CT, dTAIdCT = t_eph(JD, UT1, TT, sta2.lon_gcen, sta2.u, sta2.v)
@@ -17454,10 +17144,10 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 
     t_2_0 = deepcopy(t_2)
     if debug:
-        print R_2_t_2
-        print V_2_t_2
-        print A_2_t_2
-        print 'lalala'
+        print(R_2_t_2)
+        print(V_2_t_2)
+        print(A_2_t_2)
+        print('lalala')
     ##############
 
     while (abs(lt_20 - lt_20_tmp) > precision) and (nn < n_max):
@@ -17472,8 +17162,8 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
         V_2 = V_2_t_2 + A_2_t_2*(t_2-t_2_0)
 
         if debug:
-            print R_2
-            print V_2
+            print(R_2)
+            print(V_2)
         # vector needed for RLT calculation
         R_20 = R_0 - R_2
 
@@ -17492,11 +17182,11 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
             R_2_B  = R_2 - (rb_t2 + (t_2-t_2_0)*vb_t2)
             R_20_B = R_0_B - R_2_B
             if debug:
-                print 'rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
+                print('rlt = {:.18f}'.format((2.0*GM[ii]/C**3) * \
                   log(  ( norm(R_2_B) + norm(R_0_B) + norm(R_20_B) + \
                           2.0*GM[ii]/C**2 ) / \
                         ( norm(R_2_B) + norm(R_0_B) - norm(R_20_B) + \
-                          2.0*GM[ii]/C**2 ) ))
+                          2.0*GM[ii]/C**2 ) )))
             RLT += (2.0*GM[ii]/C**3) * \
                   log(  ( norm(R_2_B) + norm(R_0_B) + norm(R_20_B) + \
                           2.0*GM[ii]/C**2 ) / \
@@ -17507,9 +17197,9 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
                     ( 1.0 - dot(R_20, V_2)/(C*norm(R_20)) )
 
         t_2 = t_0 - lt_20
-        if debug: print 't_2 = {:.18f}'.format(t_2)
+        if debug: print('t_2 = {:.18f}'.format(t_2))
         nn += 1
-        if debug: print 'delta = {:.18f}'.format(abs(lt_20 - lt_20_tmp))
+        if debug: print('delta = {:.18f}'.format(abs(lt_20 - lt_20_tmp)))
 
     # transmitter state at found t_2
 #    lt_201 = lt_20 + lt_01
@@ -17519,13 +17209,13 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     V_2 = V_2_t_2 + A_2_t_2*(t_2-t_2_0)
 
     if debug:
-        print 't_0 = {:.18f}'.format(t_0)
-        print 'RLT = {:.18f}'.format(RLT)
-        print 't_2 = {:.18f}'.format(t_2)
-        print 'dd = {:.18f}'.format(dd)
+        print('t_0 = {:.18f}'.format(t_0))
+        print('RLT = {:.18f}'.format(RLT))
+        print('t_2 = {:.18f}'.format(t_2))
+        print('dd = {:.18f}'.format(dd))
 
-        print 'obs_sat = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*(R_2 - R_0))
-        print 'R2_t2 = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*R_2)
+        print('obs_sat = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*(R_2 - R_0)))
+        print('R2_t2 = [[{:.18f}],[{:.18f}],[{:.18f}]]'.format(*R_2))
 
     # unfix mjd if necessary:
     mjd = mjd_keep
@@ -17534,30 +17224,16 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 #                 location=(sta2.lon_gcen*180/np.pi, \
 #                           sta2.lat_geod*180/np.pi,\
 #                           sta2.h_geod))
-    if debug: print 'mjd = {:.18f}, t_2 = {:.18f}'.format(mjd, t_2/86400.0)
-    astropy_t_2 = Time(mjd, t_2/86400.0, \
-                format='mjd', scale='tdb', precision=9, \
-                 location=EarthLocation.from_geocentric(*sta2.r_GTRS, \
-                                                         unit=units.m))
-    if debug: print astropy_t_2.datetime
+    if debug:
+        print('mjd = {:.18f}, t_2 = {:.18f}'.format(mjd, t_2/86400.0))
+    astropy_t_2 = Time(mjd, t_2/86400.0, format='mjd', scale='tdb', precision=9,
+                       location=EarthLocation.from_geocentric(*sta2.r_GTRS, unit=units.m))
+    if debug:
+        print(astropy_t_2.datetime)
 #    t_2_UTC = astropy_t_2.utc.mjd - np.floor(astropy_t_2.utc.mjd)
     t_2_UTC = astropy_t_2.utc.jd2
     if debug:
-        print 't_2_UTC = {:.18f}'.format(t_2_UTC*86400.0)
-#    astropy_t_2 = Time(mjd, t_2/86400.0, \
-#                format='mjd', scale='tdb', precision=9, \
-#                 location=(sta1.lon_gcen*180/np.pi, \
-#                           sta1.lat_geod*180/np.pi,\
-#                           sta1.h_geod))
-#    t_2_UTC = astropy_t_2.utc.jd2
-#    if debug:
-#        print 't_2_UTC = {:.18f}'.format(t_2_UTC*86400.0)
-#    astropy_t_2 = Time(mjd, t_2/86400.0, \
-#                format='mjd', scale='tdb', precision=9)
-#    t_2_UTC = astropy_t_2.utc.jd2
-#    if debug:
-#        print 't_2_UTC = {:.18f}'.format(t_2_UTC*86400.0)
-#        raw_input()
+        print('t_2_UTC = {:.18f}'.format(t_2_UTC*86400.0))
 
     ''' My algorithm from PhD thesis '''
     # direction vector
@@ -17707,16 +17383,16 @@ def pointings(source, stations, date_t_start, date_t_stop,
     ''' fake obs '''
     ob = obs(stations, 'DUMMY', 'C')
     ob.addScan(date_t_start, t_step_in, stop=date_t_stop)
-    print ob
+    print(ob)
     ''' update/(down)load eops, meteo and iono data '''
     if internet_on(): # check internet connection
         try:
             doup(inp['do_trp_calc'], inp['do_ion_calc'],
                  inp['cat_eop'], inp['meteo_cat'], inp['ion_cat'],
                  date_t_start, date_t_stop, inp['iono_model'])
-        except Exception, err:
-            print str(err)
-            print 'catalogue updates failed'
+        except Exception as err:
+            print(str(err))
+            print('catalogue updates failed')
 
     ''' load cats '''
     _, sta, eops = load_cats(inp, source, sou_type, stations, date_t_start)
@@ -17840,10 +17516,9 @@ def pointings(source, stations, date_t_start, date_t_stop,
         date_string = date_t_start.strftime("%y%m%d")
 
         for jj, stash in enumerate(stations_short):
-            print 'Outputting {:s}'.format(stash)
+            print('Outputting {:s}'.format(stash))
             # save AzEls to human-readable text-files
-            with open(inp['out_path']+'/azel.'+source.lower()+'.'+\
-                      date_string+'.'+stash.lower(),'w') as f:
+            with open(inp['out_path']+'/azel.'+source.lower()+'.'+date_string+'.'+stash.lower(),'w') as f:
                 for ii, tstamp in enumerate(ob.tstamps):
                     # skip duplicates:
                     if ii > 0 and tstamp == ob.tstamps[ii-1]:
@@ -17857,8 +17532,7 @@ def pointings(source, stations, date_t_start, date_t_stop,
                     f.write(line)
             # save AzEls to human-readable text-files in GreenBank format
             if stash.lower() == 'gb':
-                with open(inp['out_path']+'/azel.gbt.'+source.lower()+'.'+\
-                          date_string+'.'+stash.lower(),'w') as f:
+                with open(inp['out_path']+'/azel.gbt.'+source.lower()+'.'+date_string+'.'+stash.lower(),'w') as f:
                     f.write('# {:s} tracking table (angles in degrees)\n'.\
                             format(source.upper()))
                     f.write('format=ephemeris\n')
@@ -17877,8 +17551,7 @@ def pointings(source, stations, date_t_start, date_t_stop,
                         line += azel_str
                         f.write(line)
             # save pointingsJ2000 (J2000 RA/Decs) to human-readable text-files
-            with open(inp['out_path']+'/pointing.J2000.'+source.lower()+'.'+\
-                      date_string+'.'+stash.lower(),'w') as f:
+            with open(inp['out_path']+'/pointing.J2000.'+source.lower()+'.'+date_string+'.'+stash.lower(),'w') as f:
                 for ii, tstamp in enumerate(ob.tstamps):
                     # skip duplicates:
                     if ii > 0 and tstamp == ob.tstamps[ii - 1]:
@@ -17888,8 +17561,7 @@ def pointings(source, stations, date_t_start, date_t_stop,
                     dec = Angle(pointingsJ2000[ii,jj,1], unit=units.rad)
                     radec = np.hstack((ra.hms, dec.dms))
                     radec[4:] = abs(radec[4:]) # minus doesn't belong to everyone..
-                    radec_str = \
-              'ra = {:02.0f}h{:02.0f}m{:010.7f}s  dec = {:-3.0f}d{:02.0f}\'{:010.7f}\"\n'\
+                    radec_str = 'ra = {:02.0f}h{:02.0f}m{:010.7f}s  dec = {:-3.0f}d{:02.0f}\'{:010.7f}\"\n'\
                        .format(*radec)
                     line += radec_str
                     f.write(line)
@@ -17924,9 +17596,8 @@ def pointings(source, stations, date_t_start, date_t_stop,
                     radec = np.hstack((ra.hms, dec.dms))
 
                     radec[4:] = abs(radec[4:]) # minus doesn't belong to everyone..
-                    radec_str = \
-              'ra = {:02.0f}h{:02.0f}m{:010.7f}s  dec = {:-3.0f}d{:02.0f}\'{:010.7f}\"\n'\
-                       .format(*radec)
+                    radec_str = 'ra = {:02.0f}h{:02.0f}m{:010.7f}s  dec = {:-3.0f}d{:02.0f}\'{:010.7f}\"\n'\
+                        .format(*radec)
                     line += radec_str
                     f.write(line)
 
