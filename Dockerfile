@@ -13,6 +13,6 @@ ADD pypride/ /app/pypride/
 WORKDIR /app
 
 # install pypride
-RUN python setup.py install --record files.txt
+RUN pip install numpy && python setup.py install --record files.txt
 
 CMD /bin/bash

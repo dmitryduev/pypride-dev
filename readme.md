@@ -1,5 +1,11 @@
 # pypride-dev
 
+## Installation
+
+```bash
+pip install git+https://github.com/dmitryduev/pypride.git
+```
+
 ## build and run with `docker`
 
 ```bash

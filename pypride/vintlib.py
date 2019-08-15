@@ -14582,8 +14582,8 @@ def hardisp(sta, t, r2000, calc_vel=True):
 def hardisp_calc(amp_ocean, phs_ocean, vw, t, r2000):
     """
      input:
-     amp_ocean(11,3)   Amplitudes
-     phs_ocean(11,3)   Phases
+     amp_ocean(11, 3)  Amplitudes
+     phs_ocean(11, 3)  Phases
      vw                Transformation matrix from VEN to the
                        Earth-fixed coordinate system
      r2000             Transformation matrix from crust-fixed to J2000 system
