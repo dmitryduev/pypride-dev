@@ -1,32 +1,32 @@
-# -*- coding: utf-8 -*-
 """
-A library containing a handful of useful functions.
+Main library used by pypride.
 
 Created on Wed Oct  2 16:23:02 2013
 
 @author: Dr. Dmitry A. Duev
 """
 
-from math import *
-import numpy as np
-import scipy as sp
+# from math import *
+# import numpy as np
+# import scipy as sp
 from scipy.interpolate import BarycentricInterpolator as bi
 
-import datetime
-from astropy.time import Time
+# import datetime
+# from astropy.time import Time
 import astropy.units as units
 from astropy.coordinates import EarthLocation, Angle
-import os
+# import os
 import re
 import requests
 from ftplib import FTP
 import paramiko # ssh client
 import gzip
 import collections
-from copy import deepcopy
+# from copy import deepcopy
 
 ## ex-fortran stuff
-from .vintflib import lagint, lagintd, pleph, admint2
+# from .vintflib import lagint, lagintd, pleph, admint2
+from .vintflib import lagintd, admint2
 from pysofa2 import Xys00a as iau_xys00a_fort
 
 ## parallelism
@@ -36,18 +36,19 @@ import subprocess
 ## mostly used numpy stuff:
 from numpy.linalg import norm
 from numpy import dot
-np.set_printoptions(precision=18)
 from numpy.polynomial import chebyshev as cheb
 
 import numba
 
 import inspect
 
-from functools import reduce
+# from functools import reduce
 import socket
 
 # import all class declarations
 from .classes import *
+
+np.set_printoptions(precision=18)
 
 # abs_path = os.path.dirname(inspect.getfile(inspect.currentframe()))
 
@@ -56,6 +57,8 @@ from .classes import *
 # Flatten (irregular) list of lists
 #==============================================================================
 '''
+
+
 def flatten_generator(l):
     for el in l:
         if isinstance(el, collections.Iterable) and not isinstance(el, str):
@@ -63,6 +66,7 @@ def flatten_generator(l):
                 yield sub
         else:
             yield el
+
 
 def flatten(x):
     result = []
@@ -102,7 +106,7 @@ def extrap1d(interpolator):
             return interpolator(x)
 
     def ufunclike(xs):
-        return np.array(map(pointwise, np.array(xs)))
+        return np.array(list(map(pointwise, np.array(xs))))
 
     return ufunclike
 
@@ -310,6 +314,7 @@ def weighted_avg_and_var(values, weights):
 #    std = sqrt(variance)
     return (average, variance)
 
+
 def GetSNR(data, lmax, spread, void):
 
     dx = data[lmax-spread:lmax+spread+1]
@@ -383,10 +388,10 @@ def factorise(n):
 #==============================================================================
 '''
 def derivative(x, y, points=5, poly=2):
-    '''
+    """
     Calculate a derivative dy/dx at each x
     Don't forget to normalise output
-    '''
+    """
     dydx = np.zeros_like(y)
     for n0, xi in enumerate(x):
         # number of points to cut from the left-hand side
@@ -447,39 +452,39 @@ def interpolate(x, y, xn, points=5, poly=2):
 '''
 #@jit
 def nsec(mjd):
-    '''
+    """
     This routine determines the number of leap seconds or
     difference TAI - UTC_iers starting from 1972 January 1
-    '''
+    """
     idelt = 0
-    if (mjd >= 41317.0 and mjd < 41499.0): idelt = 10  # 1972 JAN 1
-    elif (mjd >= 41499.0 and mjd < 41683.0): idelt = 11  # 1972 JUL 1
-    elif (mjd >= 41683.0 and mjd < 42048.0): idelt = 12  # 1973 JAN 1
-    elif (mjd >= 42048.0 and mjd < 42413.0): idelt = 13  # 1974 JAN 1
-    elif (mjd >= 42413.0 and mjd < 42778.0): idelt = 14  # 1975 JAN 1
-    elif (mjd >= 42778.0 and mjd < 43144.0): idelt = 15  # 1976 JAN 1
-    elif (mjd >= 43144.0 and mjd < 43509.0): idelt = 16  # 1977 JAN 1
-    elif (mjd >= 43509.0 and mjd < 43874.0): idelt = 17  # 1978 JAN 1
-    elif (mjd >= 43874.0 and mjd < 44239.0): idelt = 18  # 1979 JAN 1
-    elif (mjd >= 44239.0 and mjd < 44786.0): idelt = 19  # 1980 JAN 1
-    elif (mjd >= 44786.0 and mjd < 45151.0): idelt = 20  # 1981 JUL 1
-    elif (mjd >= 45151.0 and mjd < 45516.0): idelt = 21  # 1982 JUL 1
-    elif (mjd >= 45516.0 and mjd < 46247.0): idelt = 22  # 1983 JUL 1
-    elif (mjd >= 46247.0 and mjd < 47161.0): idelt = 23  # 1985 JUL 1
-    elif (mjd >= 47161.0 and mjd < 47892.0): idelt = 24  # 1988 JAN 1
-    elif (mjd >= 47892.0 and mjd < 48257.0): idelt = 25  # 1990 JAN 1
-    elif (mjd >= 48257.0 and mjd < 48804.0): idelt = 26  # 1991 JAN 1
-    elif (mjd >= 48804.0 and mjd < 49169.0): idelt = 27  # 1992 JUL 1
-    elif (mjd >= 49169.0 and mjd < 49534.0): idelt = 28  # 1993 JUL 1
-    elif (mjd >= 49534.0 and mjd < 50083.0): idelt = 29  # 1994 JUL 1
-    elif (mjd >= 50083.0 and mjd < 50630.0): idelt = 30  # 1996 JAN 1
-    elif (mjd >= 50630.0 and mjd < 51179.0): idelt = 31  # 1997 JUL 1
-    elif (mjd >= 51179.0 and mjd < 53736.0): idelt = 32  # 1999 JAN 1
-    elif (mjd >= 53736.0 and mjd < 54832.0): idelt = 33  # 2006 JAN 1
-    elif (mjd >= 54832.0 and mjd < 56109.0): idelt = 34  # 2009 JAN 1
-    elif (mjd >= 56109.0 and mjd < 57204.0): idelt = 35  # 2012 JUL 1
-    elif (mjd >= 57204.0 and mjd < 57754.0): idelt = 36  # 2015 JUL 1
-    elif (mjd >= 57754.0):                   idelt = 37  # 2017 JAN 1
+    if   mjd >= 41317.0 and mjd < 41499.0: idelt = 10  # 1972 JAN 1
+    elif mjd >= 41499.0 and mjd < 41683.0: idelt = 11  # 1972 JUL 1
+    elif mjd >= 41683.0 and mjd < 42048.0: idelt = 12  # 1973 JAN 1
+    elif mjd >= 42048.0 and mjd < 42413.0: idelt = 13  # 1974 JAN 1
+    elif mjd >= 42413.0 and mjd < 42778.0: idelt = 14  # 1975 JAN 1
+    elif mjd >= 42778.0 and mjd < 43144.0: idelt = 15  # 1976 JAN 1
+    elif mjd >= 43144.0 and mjd < 43509.0: idelt = 16  # 1977 JAN 1
+    elif mjd >= 43509.0 and mjd < 43874.0: idelt = 17  # 1978 JAN 1
+    elif mjd >= 43874.0 and mjd < 44239.0: idelt = 18  # 1979 JAN 1
+    elif mjd >= 44239.0 and mjd < 44786.0: idelt = 19  # 1980 JAN 1
+    elif mjd >= 44786.0 and mjd < 45151.0: idelt = 20  # 1981 JUL 1
+    elif mjd >= 45151.0 and mjd < 45516.0: idelt = 21  # 1982 JUL 1
+    elif mjd >= 45516.0 and mjd < 46247.0: idelt = 22  # 1983 JUL 1
+    elif mjd >= 46247.0 and mjd < 47161.0: idelt = 23  # 1985 JUL 1
+    elif mjd >= 47161.0 and mjd < 47892.0: idelt = 24  # 1988 JAN 1
+    elif mjd >= 47892.0 and mjd < 48257.0: idelt = 25  # 1990 JAN 1
+    elif mjd >= 48257.0 and mjd < 48804.0: idelt = 26  # 1991 JAN 1
+    elif mjd >= 48804.0 and mjd < 49169.0: idelt = 27  # 1992 JUL 1
+    elif mjd >= 49169.0 and mjd < 49534.0: idelt = 28  # 1993 JUL 1
+    elif mjd >= 49534.0 and mjd < 50083.0: idelt = 29  # 1994 JUL 1
+    elif mjd >= 50083.0 and mjd < 50630.0: idelt = 30  # 1996 JAN 1
+    elif mjd >= 50630.0 and mjd < 51179.0: idelt = 31  # 1997 JUL 1
+    elif mjd >= 51179.0 and mjd < 53736.0: idelt = 32  # 1999 JAN 1
+    elif mjd >= 53736.0 and mjd < 54832.0: idelt = 33  # 2006 JAN 1
+    elif mjd >= 54832.0 and mjd < 56109.0: idelt = 34  # 2009 JAN 1
+    elif mjd >= 56109.0 and mjd < 57204.0: idelt = 35  # 2012 JUL 1
+    elif mjd >= 57204.0 and mjd < 57754.0: idelt = 36  # 2015 JUL 1
+    elif mjd >= 57754.0:                   idelt = 37  # 2017 JAN 1
 
     return float(idelt)
 
@@ -508,9 +513,9 @@ def mjuliandate(year, month, day, hour=0.0, minu=0.0, sec=0.0):
 #==============================================================================
 '''
 def freqRamp(cat_dir=None, sc=None, tx_type=None):
-    '''
+    """
         tx_type: ['1way', '3way']
-    '''
+    """
     # read frequency ramping parameters
     if sc is None or tx_type is None:
         raise Exception('Can\'t load ramp params: S/C/Tx_type not specified.')
@@ -828,11 +833,11 @@ def checkbound(source, orb_path='.', n=7):
                     stops = [i for i, v in enumerate(data) if 'STOP_TIME' in v]
                     eq = data[starts[0]].index('=')
                     t = r.split(data[starts[0]][eq+1:].strip())
-                    t_start = map(int,t[:-1])
+                    t_start = list(map(int, t[:-1]))
                     t_start.append(float(t[-1]))
                     eq = data[stops[-1]].index('=')
                     t = r.split(data[stops[-1]][eq+1:].strip())
-                    t_stop = map(int, t[:-1])
+                    t_stop = list(map(int, t[:-1]))
                     t_stop.append(float(t[-1]))
 #                    print fle, t_start, t_stop
                     # return file_name, t_start, t_stop
@@ -841,10 +846,8 @@ def checkbound(source, orb_path='.', n=7):
         with open(path, 'w') as f:
             for line in bounds:
                 out = '{:s}  '.format(line[0])
-                out += '{:5d} {:02d} {:02d} {:02d} {:02d} {:011.8f}   '.\
-                        format(*line[1])
-                out += '{:5d} {:02d} {:02d} {:02d} {:02d} {:011.8f}\n'.\
-                        format(*line[2])
+                out += '{:5d} {:02d} {:02d} {:02d} {:02d} {:011.8f}   '.format(*line[1])
+                out += '{:5d} {:02d} {:02d} {:02d} {:02d} {:011.8f}\n'.format(*line[2])
                 f.write(out)
     else:
         # load file with bounds
@@ -852,7 +855,7 @@ def checkbound(source, orb_path='.', n=7):
             f_lines = f.readlines()
         for line in f_lines:
             lns = line.split()
-            lns[1:] = map(float, lns[1:])
+            lns[1:] = list(map(float, lns[1:]))
             bounds.append([lns[0], list(lns[1:7]), list(lns[7:])])
 #        print bounds
     return bounds
@@ -889,20 +892,20 @@ def load_slots(orb_files, t_start, t_stop, t_step, source, inp=None):
         for jj in (0, 1):
             eq = f_lines[slot+jj].index('=')
             t = r.split(f_lines[slot+jj][eq+1:].strip())
-            ttag = map(int, t[:-1])
+            ttag = list(map(int, t[:-1]))
             ttag.append(float(t[-1]))
             out.append(ttag)
 #            slot_start = datetime(*map(int,ttag))
         slotData.append(out)
 
     # line number of 'start_time', start_time, stop_time
-    s = [x for x in slotData if (mjuliandate(*t_start)>=mjuliandate(*x[1]) and
-                                mjuliandate(*t_start)<=mjuliandate(*x[2])) or
-                                (mjuliandate(*t_start)<=mjuliandate(*x[1]) and
-                                (mjuliandate(*t_stop)<=mjuliandate(*x[2]) and
-                                 mjuliandate(*t_stop)>=mjuliandate(*x[1]))) or
-                                 (mjuliandate(*t_start)<=mjuliandate(*x[1]) and
-                                  mjuliandate(*t_stop)>=mjuliandate(*x[2]))]
+    s = [x for x in slotData if (mjuliandate(*t_start) >= mjuliandate(*x[1]) and
+                                 mjuliandate(*t_start) <= mjuliandate(*x[2])) or
+                                 (mjuliandate(*t_start) <= mjuliandate(*x[1]) and
+                                 (mjuliandate(*t_stop) <= mjuliandate(*x[2]) and
+                                 mjuliandate(*t_stop) >= mjuliandate(*x[1]))) or
+                                 (mjuliandate(*t_start) <= mjuliandate(*x[1]) and
+                                  mjuliandate(*t_stop) >= mjuliandate(*x[2]))]
 
     # load blocks of ephm corresponding to s'es
     eph_blocks = []
@@ -917,10 +920,10 @@ def load_slots(orb_files, t_start, t_stop, t_step, source, inp=None):
                 kk += 1
                 continue
             line_split = f_lines[kk].split()
-            ttag = map(float, r.split(line_split[0]))
-            dd = (datetime.datetime(*map(int, ttag[0:3])) - date_start).days
+            ttag = list(map(float, r.split(line_split[0])))
+            dd = (datetime.datetime(*list(map(int, ttag[0:3]))) - date_start).days
             ct = ttag[3] + ttag[4]/60.0 + ttag[5]/3600.0 + dd*24.0
-            block.append(flatten([ct, map(float, line_split[1:])]))
+            block.append(flatten([ct, list(map(float, line_split[1:]))]))
             kk += 1
         eph_blocks.append( np.array(block) )
 
@@ -1121,7 +1124,7 @@ def load_slots(orb_files, t_start, t_stop, t_step, source, inp=None):
 
 #            gtrs[:,jj], _ = lagint(9, eph_blocks[:,0], eph_gtrs[:,jj], th)
 
-    astrotime_out = Time(map(str, ob.tstamps), format='iso', scale='tdb')
+    astrotime_out = Time(list(map(str, ob.tstamps)), format='iso', scale='tdb')
 #    print _time()-tic
 #    print bcrs
 #    raw_input('bugagaga')
@@ -1223,8 +1226,8 @@ def esa_sc_eph_make_tasc(sc_name, start, stop, inp, paddLeft=30, paddRight=2, pa
             # load it:
             with open(os.path.join(inp['sc_eph_cat'], sc_bcrs_eph), 'r') as f:
                 tmp = f.readlines()
-            firstLine = map(int, [float(x) for x in tmp[0].split()[0:6]])
-            lastLine = map(int, [float(x) for x in tmp[-1].split()[0:6]])
+            firstLine = list(map(int, [float(x) for x in tmp[0].split()[0:6]]))
+            lastLine = list(map(int, [float(x) for x in tmp[-1].split()[0:6]]))
             eph_start = datetime.datetime(*firstLine)
             eph_stop = datetime.datetime(*lastLine)
             # print t_start, eph_start, t_stop, eph_stop
@@ -1307,9 +1310,9 @@ def esa_sc_eph_make_tasc(sc_name, start, stop, inp, paddLeft=30, paddRight=2, pa
 
         ''' dump to files '''
         tstamps = [datetime.datetime.strptime(t.split()[0], '%Y/%m/%dT%H:%M:%S.%f') for t in bcrs]
-        eph_bcrs = np.array([map(float, s.split()[1:]) for s in bcrs])
-        eph_gcrs = np.array([map(float, s.split()[1:]) for s in gcrs])
-        eph_gtrs = np.array([map(float, s.split()[1:4]) + [0, 0, 0] for s in gtrs])
+        eph_bcrs = np.array([list(map(float, s.split()[1:])) for s in bcrs])
+        eph_gcrs = np.array([list(map(float, s.split()[1:])) for s in gcrs])
+        eph_gtrs = np.array([list(map(float, s.split()[1:4])) + [0, 0, 0] for s in gtrs])
         ''' BCRS '''
         with open(os.path.join(inp['sc_eph_cat'], sc_bcrs_eph), 'w') as f:
             for ii, t in enumerate(tstamps):
@@ -1382,8 +1385,8 @@ def esa_sc_eph_make(source, date_t_start, date_t_stop, inp, paddLeft=30, paddRig
         # load it:
         with open(os.path.join(inp['sc_eph_cat'], sc_bcrs_eph), 'r') as f:
             tmp = f.readlines()
-        firstLine = map(int, [float(x) for x in tmp[0].split()[0:6]])
-        lastLine  = map(int, [float(x) for x in tmp[-1].split()[0:6]])
+        firstLine = list(map(int, [float(x) for x in tmp[0].split()[0:6]]))
+        lastLine  = list(map(int, [float(x) for x in tmp[-1].split()[0:6]]))
         eph_start = datetime.datetime(*firstLine)
         eph_end = datetime.datetime(*lastLine)
         if (t_start < eph_start) or (t_end > eph_end):
@@ -1533,24 +1536,24 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
     t_obs_out_of_eph_boundary = 0
     if eph_bc_exist:
         # load it:
-        with open(sc_eph_cat+'/'+sc_bcrs_eph,'r') as f:
+        with open(sc_eph_cat+'/'+sc_bcrs_eph, 'r') as f:
             tmp = f.readlines()
         eph = []
         # do what the matlab function load does (convert strings to floats):
         for line in tmp:
             line = [float(x) for x in line.split()]
-            line[0:6] = map(int,line[0:6])
+            line[0:6] = list(map(int, line[0:6]))
             eph.append(line)
         eph_start = datetime.datetime(*eph[0][0:6])
         eph_end = datetime.datetime(*eph[-1][0:6])
-        if (t_start<eph_start) or (t_end>eph_end):
+        if (t_start < eph_start) or (t_end > eph_end):
             t_obs_out_of_eph_boundary = 1
 
-    #now download/update the eph
-    if eph_bc_exist!=1 or t_obs_out_of_eph_boundary==1:
-        if eph_bc_exist!=1:
+    # now download/update the eph
+    if eph_bc_exist != 1 or t_obs_out_of_eph_boundary == 1:
+        if eph_bc_exist != 1:
             print('S/C bc ephemeris file: '+sc_bcrs_eph+' not found, downloading...')
-        if t_obs_out_of_eph_boundary==1:
+        if t_obs_out_of_eph_boundary == 1:
             print('T_obs is not within the existing bc ephemeris time range. Updating '+sc_bcrs_eph+'...')
 
         eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
@@ -1631,20 +1634,18 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
         # do what the matlab function load does (convert strings to floats):
         for line in tmp:
             line = [float(x) for x in line.split()]
-            line[0:6] = map(int,line[0:6])
+            line[0:6] = list(map(int, line[0:6]))
             eph.append(line)
-        eph_start = datetime.datetime(eph[0][0],eph[0][1],\
-                                      eph[0][2],eph[0][3],eph[0][4],eph[0][5])
-        eph_end = datetime.datetime(eph[-1][0],eph[-1][1],\
-                                    eph[-1][2],eph[-1][3],eph[-1][4],eph[-1][5])
-        if (t_start<eph_start) or (t_end>eph_end):
+        eph_start = datetime.datetime(eph[0][0], eph[0][1], eph[0][2], eph[0][3], eph[0][4], eph[0][5])
+        eph_end = datetime.datetime(eph[-1][0], eph[-1][1], eph[-1][2], eph[-1][3], eph[-1][4], eph[-1][5])
+        if (t_start < eph_start) or (t_end > eph_end):
             t_obs_out_of_eph_boundary = 1
 
-    #now download/update the GTRS eph
-    if eph_gc_exist!=1 or t_obs_out_of_eph_boundary==1:
-        if eph_gc_exist!=1:
+    # now download/update the GTRS eph
+    if eph_gc_exist != 1 or t_obs_out_of_eph_boundary == 1:
+        if eph_gc_exist != 1:
             print('S/C gtrs ephemeris file: '+sc_gtrs_eph+' not found, downloading...')
-        if t_obs_out_of_eph_boundary==1:
+        if t_obs_out_of_eph_boundary == 1:
             print('T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gtrs_eph+'...')
 
         # DO NOT LT-CORRECT!!
@@ -1693,27 +1694,26 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
         # do what the matlab function load does (convert strings to floats):
         for line in html_copy:
             line = [float(x) for x in line.split()]
-            line[0:5] = map(int,line[0:5])
+            line[0:5] = list(map(int, line[0:5]))
             eph.append(line)
 
         UT_eph = [(ep[3] + ep[4]/60.0 + ep[5]/3600.0)/24.0 for ep in eph]
         # allow for 'overnighters':
         dd = mjuliandate(*eph[-1][0:3])-mjuliandate(*eph[0][0:3])
-        for cr in range(1,int(dd)+1):
-            for nn in range(1,len(UT_eph)):
-                 if UT_eph[nn]<UT_eph[nn-1]:
+        for cr in range(1, int(dd)+1):
+            for nn in range(1, len(UT_eph)):
+                 if UT_eph[nn] < UT_eph[nn-1]:
                       UT_eph[nn] = UT_eph[nn] + 1
 
         ''' calculate v and a using a nth-order Chebyshёv poly '''
         eph = np.array(eph)
         nth = 7
-        v = np.zeros((len(UT_eph),3))
-        while nth<12:
+        v = np.zeros((len(UT_eph), 3))
+        while nth < 12:
             try:
                 for jj in range(9,12):
-                    p = cheb.chebfit(UT_eph,eph[:,jj-3], nth)
-                    v[:,jj-9] = cheb.chebval(UT_eph,
-                                cheb.chebder(p)) / 86400.0
+                    p = cheb.chebfit(UT_eph, eph[:, jj-3], nth)
+                    v[:, jj-9] = cheb.chebval(UT_eph, cheb.chebder(p)) / 86400.0
             except:
                 # didn't work? try a higher order then
                 nth += 1
@@ -1742,7 +1742,7 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
         # print it to file:
         f = open(sc_eph_cat+'/'+sc_gtrs_eph,'w')
         for ep in eph:
-            datestr = map(int,ep[0:5])
+            datestr = list(map(int, ep[0:5]))
             datestr.append(ep[5])
             s = '{:5d} {:02d} {:02d} {:02d} {:02d} {:06.3f} '\
                  .format(*datestr)+\
@@ -1771,19 +1771,19 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
         # do what the matlab function load does (convert strings to floats):
         for line in tmp:
             line = [float(x) for x in line.split()]
-            line[0:6] = map(int,line[0:6])
+            line[0:6] = list(map(int, line[0:6]))
             eph.append(line)
         eph_start = datetime.datetime(*eph[0][0:6])
         eph_end = datetime.datetime(*eph[-1][0:6])
-        if (t_start<eph_start) or (t_end>eph_end):
+        if (t_start < eph_start) or (t_end > eph_end):
             t_obs_out_of_eph_boundary = 1
 
     # now make/update the GCRS eph in UTC time stamps
     # this is used to calculate ra/dec's
-    if eph_gcrs_exist!=1 or t_obs_out_of_eph_boundary==1:
-        if eph_gcrs_exist!=1:
+    if eph_gcrs_exist != 1 or t_obs_out_of_eph_boundary == 1:
+        if eph_gcrs_exist != 1:
             print('S/C gcrs ephemeris file: '+sc_gcrs_eph+' not found, calculating...')
-        if t_obs_out_of_eph_boundary==1:
+        if t_obs_out_of_eph_boundary == 1:
             print('T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gcrs_eph+'...')
 
         # load BCRS eph in UTC time stamps:
@@ -1831,7 +1831,7 @@ def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
         f = open(sc_eph_cat+'/'+sc_gcrs_eph,'w')
         for ep in eph:
             ep = [float(x) for x in ep.split()]
-            ep[0:5] = map(int,ep[0:5])
+            ep[0:5] = list(map(int, ep[0:5]))
 #            mjd = mjuliandate(ep[0],ep[1],ep[2])
 #            JD = mjd + 2400000.5
 #            CT = (ep[3] + ep[4]/60.0 + ep[5]/3600.0)/24.0
@@ -1869,7 +1869,7 @@ def load_slots_gaia(eph_file, t_start, t_stop, t_step):
         for jj in (0,1):
             eq = f_lines[slot+jj].index('=')
             t = r.split(f_lines[slot+jj][eq+1:].strip())
-            ttag = map(int,t[:-1])
+            ttag = list(map(int, t[:-1]))
             ttag.append(float(t[-1]))
             out.append(ttag)
 #            slot_start = datetime(*map(int,ttag))
@@ -1889,23 +1889,20 @@ def load_slots_gaia(eph_file, t_start, t_stop, t_step):
     # count not from block start (commented below), but t_start
     date_start = datetime.datetime(*t_start[0:3])
     for ii, sta, sto in s:
-#        date_start = datetime.datetime(*sta[0:3])
-#        print date_start
         kk = ii + 4
         block = []
-        while len(f_lines[kk])>5 and ('META_START' not in f_lines[kk]):
+        while len(f_lines[kk]) > 5 and ('META_START' not in f_lines[kk]):
             line_split = f_lines[kk].split()
-            ttag = map(float, r.split(line_split[0]))
-            dd = (datetime.datetime(*map(int,ttag[0:3])) - date_start).days
+            ttag = list(map(float, r.split(line_split[0])))
+            dd = (datetime.datetime(*list(map(int, ttag[0:3]))) - date_start).days
             ut = ttag[3] + ttag[4]/60.0 + ttag[5]/3600.0 + dd*24.0
-            block.append(flatten([ut, map(float,line_split[1:])]))
+            block.append(flatten([ut, list(map(float, line_split[1:]))]))
             kk += 1
-        eph_blocks.append( np.array(block) )
-
+        eph_blocks.append(np.array(block))
 
     ''' make the ephemeris for output '''
     # fake obs
-    ob = obs(['DUMMY'],'DUMMY','C')
+    ob = obs(['DUMMY'], 'DUMMY', 'C')
     date_t_start = datetime.datetime(*t_start)
     date_t_stop = datetime.datetime(*t_stop)
     ob.addScan(date_t_start, t_step, stop=date_t_stop)
@@ -2046,10 +2043,10 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
         eph = []
         # check boundaries
         start = [float(x) for x in tmp[0].split()]
-        eph_start = datetime.datetime(*map(int,start[0:6]))
+        eph_start = datetime.datetime(*list(map(int, start[0:6])))
         stop = [float(x) for x in tmp[-1].split()]
-        eph_end = datetime.datetime(*map(int,stop[0:6]))
-        if (date_t_start<eph_start) or (date_t_end>eph_end):
+        eph_end = datetime.datetime(*list(map(int, stop[0:6])))
+        if (date_t_start < eph_start) or (date_t_end > eph_end):
             t_obs_out_of_eph_boundary = True
 
     # force update requested?
@@ -2139,7 +2136,7 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
         org_eph[:,6:] *= 1e3
 
         # decimal time scale
-        t_eph_str = ['{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:'.format(*map(int, oe[:5])) +
+        t_eph_str = ['{:4d}-{:02d}-{:02d}T{:02d}:{:02d}:'.format(*list(map(int, oe[:5]))) +
                      '{:06.3f}'.format(oe[5]) for oe in org_eph]
         t_eph_dt = [datetime.datetime.strptime(ti, '%Y-%m-%dT%H:%M:%S.%f') for ti in t_eph_str]
         t_0 = datetime.datetime(t_eph_dt[0].year, t_eph_dt[0].month, t_eph_dt[0].day)
@@ -2395,17 +2392,16 @@ def load_scf(scf_file):
     for line in f_lines:
         # cut trailing spaces
         line = line.strip()
-        if len(line)>0 and (line[0]=='2' or line[0]=='1'):
-            for char in (':','T','/','-'):
+        if len(line) > 0 and (line[0] == '2' or line[0] == '1'):
+            for char in (':', 'T', '/', '-'):
                 # this determines time stamp accuracy, actually:
                 firstSpacePos = line.index(' ')
                 line = line[0:firstSpacePos].replace(char,' ') + \
                        line[firstSpacePos:]
             line = [float(x) for x in line.split()]
-#            line[0:6] = map(int,line[0:6])
-            line[0:5] = map(int,line[0:5])
+            line[0:5] = list(map(int, line[0:5]))
             eph.append(line)
-    #convert output to a numpy array
+    # convert output to a numpy array
     return np.asarray(eph)
 
 '''
@@ -2475,18 +2471,16 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
         f_lines = [l for l in f_lines if l[0] not in ['#','+','%','/']]
         # extract time in GPS time scale and convert to UTC:
         utc_gps = nsec(mjd) - nsec(mjuliandate(1980,1,6))
-        time = [map(float, t[1:].split()) for t in f_lines if t[0]=='*']
-        time = [datetime.datetime(*map(int, t)) - \
-                datetime.timedelta(seconds=utc_gps) for t in time]
+        time = [list(map(float, t[1:].split())) for t in f_lines if t[0] == '*']
+        time = [datetime.datetime(*list(map(int, t))) - datetime.timedelta(seconds=utc_gps) for t in time]
         time = [[t.year, t.month, t.day, t.hour, t.minute, t.second] for t in time]
 
-        xyz = [map(float, x.split()[1:4]) for x in f_lines \
-                if source.lower() in x.lower()]
+        xyz = [list(map(float, x.split()[1:4])) for x in f_lines if source.lower() in x.lower()]
 
         # output
         eph = []
         for t, r in zip(time, xyz):
-            eph.append(t+r)
+            eph.append(t + r)
 
         #convert output to a numpy array
         return np.asarray(eph)
@@ -13243,7 +13237,7 @@ def load_sc_eph(sou_type, source, t_start, t_end, inp,
     for nn, _ in enumerate(eph.UT):
         # should be wrt day of t_start (t0), i.e. allow for negative values
         # if padding goes one day earlier
-        eph.UT[nn] += (datetime.datetime(*map(int,eph.gtrs[nn,0:3])) - t0).days
+        eph.UT[nn] += (datetime.datetime(*list(map(int, eph.gtrs[nn, 0:3]))) - t0).days
 
     eph.CT = (eph.bcrs[0][:, 3] + eph.bcrs[0][:, 4]/60.0 + eph.bcrs[0][:, 5]/3600.0)/24.0
     eph.CT_sec = eph.bcrs[0][:, 3]*3600.0 + eph.bcrs[0][:, 4]*60.0 + eph.bcrs[0][:, 5]
@@ -13252,8 +13246,8 @@ def load_sc_eph(sou_type, source, t_start, t_end, inp,
     for nn in range(len(eph.CT)):
         # should be wrt t_start, i.e. allow for negative values
         # if padding goes one day earlier
-        eph.CT[nn] += (datetime.datetime(*map(int, eph.bcrs[0][nn, 0:3])) - t0).days
-        eph.CT_sec[nn] += 86400.0 * (datetime.datetime(*map(int, eph.bcrs[0][nn, 0:3])) - t0).days
+        eph.CT[nn] += (datetime.datetime(*list(map(int, eph.bcrs[0][nn, 0:3]))) - t0).days
+        eph.CT_sec[nn] += 86400.0 * (datetime.datetime(*list(map(int, eph.bcrs[0][nn, 0:3]))) - t0).days
 #    eph.CT_sec = 86400.0*eph.CT
 
     # cut a proper piece
@@ -13393,41 +13387,42 @@ def sc_uvw_eph(eph, inp):
 #
 #==============================================================================
 def cart2sph(xyz):
-    '''
+    """
     Cartesian to spherical crd transformation
     Input - an N (rows) by 3 (columns) array
-    '''
+    """
     if type(xyz) != type(np.zeros(3)):
         xyz = np.array(xyz)
     rpt = np.zeros(xyz.shape)
     try:
-        xy = xyz[:,0]**2 + xyz[:,1]**2
-        rpt[:,0] = np.sqrt(xy + xyz[:,2]**2) # rho
+        xy = xyz[:, 0]**2 + xyz[:, 1]**2
+        rpt[:, 0] = np.sqrt(xy + xyz[:, 2]**2)  # rho
         # for elevation angle defined from Z-axis down:
-        #rpt[:,1] = np.arctan2(np.sqrt(xy), xyz[:,2])
+        # rpt[:,1] = np.arctan2(np.sqrt(xy), xyz[:,2])
         # for elevation angle defined from XY-plane up:
-        #rpt[:,1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # phi
-        rpt[:,1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # phi ('elevation')
-        rpt[:,2] = np.arctan2(xyz[:,1], xyz[:,0]) # theta ('azimuth')
+        # rpt[:,1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # phi
+        rpt[:, 1] = np.arctan2(xyz[:, 2], np.sqrt(xy))  # phi ('elevation')
+        rpt[:, 2] = np.arctan2(xyz[:, 1], xyz[:, 0])  # theta ('azimuth')
     except IndexError: # 1d-array case
         xy = xyz[0]**2 + xyz[1]**2
-        rpt[0] = sqrt(xy + xyz[2]**2) # rho
-        rpt[1] = atan2(xyz[2], sqrt(xy)) # phi ('elevation')
-        rpt[2] = atan2(xyz[1], xyz[0]) # theta ('azimuth')
+        rpt[0] = sqrt(xy + xyz[2]**2)  # rho
+        rpt[1] = atan2(xyz[2], sqrt(xy))  # phi ('elevation')
+        rpt[2] = atan2(xyz[1], xyz[0])  # theta ('azimuth')
     return rpt
 
+
 def sph2cart(rpt):
-    '''
+    """
     Spherical to cartesian crd transformation
     Input - an N (rows) by 3 (columns) array
-    '''
+    """
     if type(rpt) != type(np.zeros(3)):
         rpt = np.array(rpt)
     xyz = np.zeros(rpt.shape)
     try:
-        xyz[:,0] = rpt[:,0]*np.cos(rpt[:,1])*np.cos(rpt[:,2])
-        xyz[:,1] = rpt[:,0]*np.cos(rpt[:,1])*np.sin(rpt[:,2])
-        xyz[:,2] = rpt[:,0]*np.sin(rpt[:,1])
+        xyz[:, 0] = rpt[:, 0]*np.cos(rpt[:, 1])*np.cos(rpt[:, 2])
+        xyz[:, 1] = rpt[:, 0]*np.cos(rpt[:, 1])*np.sin(rpt[:, 2])
+        xyz[:, 2] = rpt[:, 0]*np.sin(rpt[:, 1])
     except IndexError: # 1d-array case
         xyz[0] = rpt[0]*cos(rpt[1])*cos(rpt[2])
         xyz[1] = rpt[0]*cos(rpt[1])*sin(rpt[2])
@@ -13435,24 +13430,21 @@ def sph2cart(rpt):
     return xyz
 
 
-#==============================================================================
-#
-#==============================================================================
 def sc_xyz_eph(eph, inp):
-    '''
+    """
     Make perturbed s/c orbits wrt xyz
-    '''
+    """
     m_step = inp['m_step']
 
 #    for jj in range(6):
     for jj in range(3):
         eph.bcrs.append(np.copy(eph.bcrs[0]))
     # x + m_step m
-    eph.bcrs[1][:,6] += m_step
+    eph.bcrs[1][:, 6] += m_step
     # y + m_step m
-    eph.bcrs[2][:,7] += m_step
+    eph.bcrs[2][:, 7] += m_step
     # z + m_step m
-    eph.bcrs[3][:,8] += m_step
+    eph.bcrs[3][:, 8] += m_step
 
 #    # x +- m_step m
 #    eph.bcrs[1][:,6] += m_step
@@ -13467,9 +13459,6 @@ def sc_xyz_eph(eph, inp):
     return eph
 
 
-#==============================================================================
-#
-#==============================================================================
 def dehanttideinel(sta, t, earth, sun, moon, r2000, calc_vel=True):
     '''
       - - - - - - - - - - - - - - -
@@ -13822,8 +13811,8 @@ def dehanttideinel(sta, t, earth, sun, moon, r2000, calc_vel=True):
 
     return sta
 
-#@jit(double[:](double[:], double[:], double[:], double, double))
-def ST1IDIU (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
+
+def ST1IDIU(XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     '''
     +
       - - - - - - - - - - -
@@ -13951,7 +13940,7 @@ def ST1IDIU (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     return XCORSTA
 
 
-def ST1ISEM (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
+def ST1ISEM(XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     '''
     +
       - - - - - - - - - - -
@@ -14080,7 +14069,7 @@ def ST1ISEM (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     return XCORSTA
 
 
-def ST1L1 (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
+def ST1L1(XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     '''
     +
       - - - - - - - - - - -
@@ -14231,7 +14220,7 @@ def ST1L1 (XSTA,XSUN,XMON,FAC2SUN,FAC2MON):
     return XCORSTA
 
 
-def STEP2DIU (XSTA,FHR,T):
+def STEP2DIU(XSTA,FHR,T):
     '''
     +
       - - - - - - - - - - -
@@ -14407,7 +14396,7 @@ def STEP2DIU (XSTA,FHR,T):
     return XCORSTA
 
 
-def STEP2LON (XSTA,T):
+def STEP2LON(XSTA,T):
     '''
     +
       - - - - - - - - - - -
@@ -14549,9 +14538,6 @@ def STEP2LON (XSTA,T):
     return XCORSTA
 
 
-#==============================================================================
-#
-#==============================================================================
 def hardisp(sta, t, r2000, calc_vel=True):
     '''
      input:
@@ -14594,7 +14580,7 @@ def hardisp(sta, t, r2000, calc_vel=True):
 
 
 def hardisp_calc(amp_ocean, phs_ocean, vw, t, r2000):
-    '''
+    """
      input:
      amp_ocean(11,3)   Amplitudes
      phs_ocean(11,3)   Phases
@@ -14607,15 +14593,22 @@ def hardisp_calc(amp_ocean, phs_ocean, vw, t, r2000):
      output:
       dx_octide - displacement due to ocean loading
 
-    '''
+    """
     # parameters
     NT = 342
     ntin = 11
 
-    IDT = np.array([ [2, 0, 0, 0, 0, 0],  [2, 2,-2, 0, 0, 0],   [2,-1, 0, 1, 0, 0],\
-            [2, 2, 0, 0, 0, 0],  [1, 1, 0, 0, 0, 0],   [1,-1, 0, 0, 0, 0],\
-            [1, 1,-2, 0, 0, 0],  [1,-2, 0, 1, 0, 0],   [0, 2, 0, 0, 0, 0],\
-            [0, 1, 0,-1, 0, 0],  [0, 0, 2, 0, 0, 0] ], order='F')
+    IDT = np.array([[2, 0, 0, 0, 0, 0],
+                    [2, 2,-2, 0, 0, 0],
+                    [2,-1, 0, 1, 0, 0],
+                    [2, 2, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0],
+                    [1,-1, 0, 0, 0, 0],
+                    [1, 1,-2, 0, 0, 0],
+                    [1,-2, 0, 1, 0, 0],
+                    [0, 2, 0, 0, 0, 0],
+                    [0, 1, 0,-1, 0, 0],
+                    [0, 0, 2, 0, 0, 0]], order='F')
     IDT = np.transpose(IDT)
 
     year = t.year
@@ -14623,7 +14616,7 @@ def hardisp_calc(amp_ocean, phs_ocean, vw, t, r2000):
     mm = t.minute
     ss = t.second
 
-    doy = (t - datetime.datetime(year,1,1)).days + 1
+    doy = (t - datetime.datetime(year, 1, 1)).days + 1
     it = np.array([year, doy, hh, mm, ss])
 
     # Find amplitudes and phases for all constituents, for each of the three
@@ -15370,12 +15363,12 @@ def ion_igs(sta, iono, elv, azi, jd, UT, f_0):
 
     # calculate distance to point J of ray pierce into ionosphere from site
 #    H = 438.1*1e3 # m - mean height of the ionosphere above R_E
-    H = 450*1e3 # m - height of ionosphere above R_E as stated in IONEX files
-    R_E = 6371.0*1e3 # m - Earth's radius from the TEC map
+    H = 450*1e3  # m - height of ionosphere above R_E as stated in IONEX files
+    R_E = 6371.0*1e3  # m - Earth's radius from the TEC map
 
-    alpha = 0.9782 # Schaer JPL, but this is for H = 506.7 km
+    alpha = 0.9782  # Schaer JPL, but this is for H = 506.7 km
 
-    if 1==0:
+    if 1 == 0:
     #    lat_geod = sta.lat_geod
         # geocentric lat is used!
         # for reference see https://igscb.jpl.nasa.gov/igscb/data/format/ionex1.pdf
