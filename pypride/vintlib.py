@@ -26,7 +26,8 @@ import collections
 
 ## ex-fortran stuff
 # from .vintflib import lagint, lagintd, pleph, admint2
-from .vintflib import lagintd, admint2
+from .vintflib import lagintd
+from admint2 import admint2
 from pysofa2 import Xys00a as iau_xys00a_fort
 
 ## parallelism

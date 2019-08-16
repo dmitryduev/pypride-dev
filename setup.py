@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # from setuptools import setup
 import setuptools
-from numpy.distutils.core import setup
 # compile fortran code using f2py
-from numpy.distutils.core import Extension
+from numpy.distutils.core import setup, Extension
 
 import os
 
