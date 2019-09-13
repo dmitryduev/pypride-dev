@@ -19,22 +19,22 @@ from astropy.coordinates import EarthLocation, Angle
 import re
 import requests
 from ftplib import FTP
-import paramiko # ssh client
+import paramiko  # ssh client
 import gzip
 import collections
 # from copy import deepcopy
 
-## ex-fortran stuff
+# ex-fortran stuff
 # from .vintflib import lagint, lagintd, pleph, admint2
 from .vintflib import lagintd
 from admint2 import admint2
 from pysofa2 import Xys00a as iau_xys00a_fort
 
-## parallelism
+# parallelism
 import multiprocessing as mp
 import subprocess
 
-## mostly used numpy stuff:
+# most-used numpy stuff:
 from numpy.linalg import norm
 from numpy import dot
 from numpy.polynomial import chebyshev as cheb
@@ -78,22 +78,28 @@ def flatten(x):
             result.append(el)
     return result
 
-#flatten = lambda x: [y for l in x for y in flatten(l)] if type(x) is list else [x]
+# flatten = lambda x: [y for l in x for y in flatten(l)] if type(x) is list else [x]
+
 
 '''
 #==============================================================================
 # Factorise a number
 #==============================================================================
 '''
+
+
 def factors(n):
     facs = set(reduce(list.__add__, ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
     return sorted(list(facs))
+
 
 '''
 #==============================================================================
 # Use interpolator as extrapolator
 #==============================================================================
 '''
+
+
 def extrap1d(interpolator):
     xs = interpolator.x
     ys = interpolator.y
@@ -111,11 +117,14 @@ def extrap1d(interpolator):
 
     return ufunclike
 
+
 '''
 #==============================================================================
 # Linear extrapolator
 #==============================================================================
 '''
+
+
 def extrap(x, xp, yp, interp_type='linear'):
     """np.interp function with linear extrapolation"""
     # convert to numpy arrays if necessary:
@@ -137,11 +146,14 @@ def extrap(x, xp, yp, interp_type='linear'):
     y[x > xp[-1]]= yp[-1] + (x[x>xp[-1]]-xp[-1])*(yp[-1]-yp[-2])/(xp[-1]-xp[-2])
     return y
 
+
 '''
 #==============================================================================
 # Memoize function values on previously used arguments
 #==============================================================================
 '''
+
+
 def memoize(f):
     """
     Memoize function values on previously used arguments
@@ -154,11 +166,14 @@ def memoize(f):
     memf.cache = {}
     return memf
 
+
 '''
 #==============================================================================
 # Check internet connection
 #==============================================================================
 '''
+
+
 def internet_on():
     """
         Check internet connection
@@ -171,11 +186,14 @@ def internet_on():
         pass
     return False
 
+
 '''
 #==============================================================================
 # Clever Lagrange interpolation
 #==============================================================================
 '''
+
+
 @memoize
 def make_lag_bi(x, y):
     """
@@ -186,11 +204,14 @@ def make_lag_bi(x, y):
     L.set_yi(y)
     return L
 
+
 '''
 #==============================================================================
 # Optimal fit to data
 #==============================================================================
 '''
+
+
 def optimalFit(x, y, min_order=0, max_order=8, fit_type='poly'):
     # initialise optimal estimator:
     if fit_type=='poly':
@@ -213,6 +234,8 @@ def optimalFit(x, y, min_order=0, max_order=8, fit_type='poly'):
 # Smooth the data using a window with requested size
 #==============================================================================
 '''
+
+
 def smooth(x, window_len=11, window='hanning'):
     """smooth the data using a window with requested size.
 
@@ -260,7 +283,7 @@ def smooth(x, window_len=11, window='hanning'):
         raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
 
     s = np.r_[x[window_len - 1:0:-1], x, x[-1:-window_len:-1]]
-    #print(len(s))
+    # print(len(s))
     if window == 'flat':  # moving average
         w = np.ones(window_len, 'd')
     else:
@@ -277,6 +300,8 @@ def smooth(x, window_len=11, window='hanning'):
 # Convert time stamp in seconds to HMS
 #==============================================================================
 '''
+
+
 def sec2hms(sec):
     sec = int(sec)
     days = sec/86400
@@ -285,11 +310,14 @@ def sec2hms(sec):
     seconds = fmod(sec, 60)
     return [hours, minutes, seconds]
 
+
 '''
 #==============================================================================
 # Convert from spectral to lag domain
 #==============================================================================
 '''
+
+
 def Sp2Lag(spec):
     spf = np.zeros_like(spec)
     for n, v in enumerate(spec):
@@ -299,11 +327,14 @@ def Sp2Lag(spec):
     spfp = np.hstack((spf, pad))
     return np.fft.fft(spfp)
 
+
 '''
 #==============================================================================
 # Get Fringe SNR
 #==============================================================================
 '''
+
+
 def weighted_avg_and_var(values, weights):
     """
     Return the weighted average and standard deviation.
@@ -346,14 +377,17 @@ def GetSNR(data, lmax, spread, void):
     rd = np.sqrt(weighted_avg_and_var(dx, weights)[1])
     pa = max(dx)
 
-#    print pa, rd
+    # print pa, rd
     return pa/rd
+
 
 '''
 #==============================================================================
 # Find function maximum using a cubic fi
 #==============================================================================
 '''
+
+
 def FindMax(Spec, Fmin, Fmax):
 
     Fmin = int(Fmin)
@@ -373,21 +407,27 @@ def FindMax(Spec, Fmin, Fmax):
 
     return jmax, xmax, mx
 
+
 '''
 #==============================================================================
 # Factorise a number
 #==============================================================================
 '''
+
+
 def factorise(n):
     # factorise a number
     facs = set(reduce(list.__add__, ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
     return sorted(list(facs))
+
 
 '''
 #==============================================================================
 # Calculate derivative using polyfit
 #==============================================================================
 '''
+
+
 def derivative(x, y, points=5, poly=2):
     """
     Calculate a derivative dy/dx at each x
@@ -413,11 +453,14 @@ def derivative(x, y, points=5, poly=2):
 
     return dydx
 
+
 '''
 #==============================================================================
 # Interpolate using polyfit
 #==============================================================================
 '''
+
+
 def interpolate(x, y, xn, points=5, poly=2):
     """
     interpolate at each xn
@@ -446,12 +489,14 @@ def interpolate(x, y, xn, points=5, poly=2):
 
     return np.array(yn, dtype=np.float) if len(yn) > 1 else float(yn[0])
 
+
 '''
 #==============================================================================
 # leap seconds
 #==============================================================================
 '''
-#@jit
+
+
 def nsec(mjd):
     """
     This routine determines the number of leap seconds or
@@ -489,11 +534,14 @@ def nsec(mjd):
 
     return float(idelt)
 
+
 '''
 #==============================================================================
 #     Calculate Modified Julian Date
 #==============================================================================
 '''
+
+
 def mjuliandate(year, month, day, hour=0.0, minu=0.0, sec=0.0):
     """
     Calculate Modified Julian Date
@@ -501,8 +549,8 @@ def mjuliandate(year, month, day, hour=0.0, minu=0.0, sec=0.0):
     if month <= 2:  # January & February
         year -= 1.0
         month += 12.0
-    jd = floor( 365.25*(year + 4716.0)) + floor( 30.6001*( month + 1.0)) + 2.0 - \
-         floor( year/100.0 ) + floor( floor( year/100.0 )/4.0 ) + day - 1524.5 + \
+    jd = floor(365.25*(year + 4716.0)) + floor(30.6001*(month + 1.0)) + 2.0 - \
+         floor(year/100.0) + floor(floor(year/100.0)/4.0) + day - 1524.5 + \
          (hour + minu/60.0 + sec/3600.0)/24.0
     mjd = jd - 2400000.5
     return mjd
@@ -513,6 +561,8 @@ def mjuliandate(year, month, day, hour=0.0, minu=0.0, sec=0.0):
 # Load frequency ramping parameters for a S/C for 2(3)-way Doppler
 #==============================================================================
 '''
+
+
 def freqRamp(cat_dir=None, sc=None, tx_type=None):
     """
         tx_type: ['1way', '3way']
@@ -561,11 +611,14 @@ def freqRamp(cat_dir=None, sc=None, tx_type=None):
             print(str(err))
             raise Exception('Could not load ramp params for ' + sc + '.')
 
+
 '''
 #==============================================================================
 # Load frequency value for a S/C for 1-way Doppler
 #==============================================================================
 '''
+
+
 def freqConst(cat_file='cats/sc.freq', sc=None):
     # read frequency ramping parameters
     if sc is None:
@@ -576,7 +629,7 @@ def freqConst(cat_file='cats/sc.freq', sc=None):
                 f_lines = f.readlines()
 
             return [(float(x.split()[1]), x.split()[2]) for x in f_lines
-                    if x[0]!='#' and x.split()[0].lower()==sc.lower()][0]
+                    if x[0] != '#' and x.split()[0].lower() == sc.lower()][0]
 
         except Exception as err:
             print(str(err))
@@ -588,6 +641,8 @@ def freqConst(cat_file='cats/sc.freq', sc=None):
 # Download raw ephemerides files for ESA spacecraft
 #==============================================================================
 '''
+
+
 def getESAraweph(source, orb_path='.', replaceDE=True):
     """
     Download raw ephemeride files for VEX, MEX, and ROSETTA
@@ -658,7 +713,7 @@ def getESAraweph(source, orb_path='.', replaceDE=True):
 
         else:
             # Rosetta is different
-            p = re.compile(u'RORB_DV_\d.*_\d.*(ROS)', flags=re.IGNORECASE)
+            p = re.compile(r'RORB_DV_\d.*_\d.*(ROS)', flags=re.IGNORECASE)
             # they just dump everything into one huge file
 
             orbFiles = []
@@ -702,98 +757,6 @@ def getESAraweph(source, orb_path='.', replaceDE=True):
         print('No Internet connection, unable to get ESA\'s ephs.')
         return False
 
-
-def getESAraweph_old(source, orb_path='.', replaceDE=True):
-    """
-    Download raw ephemeride files for VEX, MEX, and ROSETTA
-
-    Update: as of 2016/05/13 the old tasc.esa.int site is down and not working anymore
-    """
-    if internet_on():
-        eph_url = 'http://tasc.esa.int/data/' + source[0:3].upper()
-        response = urllib2.urlopen(eph_url)
-        html = response.read()
-        html = html.split('\n')
-        p = re.compile('(?<=HREF=")(V|M|R)ORB_\d.*gz(?=">)', flags=re.IGNORECASE)
-        orbFiles = []
-        # get list of orb files
-        for line in html:
-            match = p.search(line)
-            if match != None:  # if there's a match
-                orbFiles.append(match.group(0))
-
-        # check contents of orb_path folder (final raw ephs:)
-        orbFilesLocal = [f for f in os.listdir(orb_path) \
-                         if os.path.isfile(os.path.join(orb_path, f)) and \
-                         ('.gz' not in f) and ('ORB_0' in f)]
-        # find updates
-        new = [f for f in orbFiles if f[:-3] not in orbFilesLocal]
-
-        # check contents of orb_path folder (planned raw ephs:)
-        if source[0:3].upper() == 'MEX' and 1 == 0:
-            p = re.compile('(?<=HREF=")MORB_pln\d.*gz(?=">)', flags=re.IGNORECASE)
-            plnOrbFiles = []
-            # get list of orb files
-            for line in html:
-                match = p.search(line)
-                if match != None:  # if there's a match
-                    plnOrbFiles.append(match.group(0))
-            if len(plnOrbFiles) > 0:
-                # get only the latest:
-                plnOrbFile = sorted(plnOrbFiles)[-1]
-            else:
-                plnOrbFile = None
-            # print plnOrbFile
-
-            plnOrbFilesLocal = [f for f in os.listdir(orb_path) \
-                                if os.path.isfile(os.path.join(orb_path, f)) and \
-                                ('.gz' not in f) and ('ORB_pln' in f)]
-            if plnOrbFile is not None and plnOrbFile[:-3] not in plnOrbFilesLocal:
-                # remove old planned data:
-                for fOld in plnOrbFilesLocal:
-                    os.remove(os.path.join(orb_path, fOld))
-                # fetch the new file:
-                new.append(plnOrbFile)
-
-        # get 'em. if they exist
-        if len(new) > 0:
-            for fNew in new:
-                try:
-                    url = eph_url + '/' + fNew
-                    fu = urllib2.urlopen(url)
-                    print("downloading " + fNew)
-                    # Save zipped file
-                    with open(os.path.join(orb_path, fNew), "wb") as local_file:
-                        local_file.write(fu.read())
-                    # unzip:
-                    print("unzipping " + fNew)
-                    with gzip.open(os.path.join(orb_path, fNew), 'rb') as fIn, \
-                            open(os.path.join(orb_path, fNew[:-3]), "w") as fOut:
-                        fOut.write(fIn.read())
-                    # replace all D+/- with E+/-
-                    if replaceDE:
-                        with open(os.path.join(orb_path, fNew[:-3]), 'r') as fOut:
-                            data = fOut.read()
-                        data = data.replace('D+', 'E+')
-                        data = data.replace('D-', 'E-')
-                        with open(os.path.join(orb_path, fNew[:-3]), 'w') as fOut:
-                            fOut.write(data)
-                    # delete zipped file:
-                    os.remove(os.path.join(orb_path, fNew))
-                    # find and delete older local files:
-                    # (eph numbers are the same, dates are different)
-                    [os.remove(os.path.join(orb_path, x)) \
-                     for x in orbFilesLocal if x[:9] in fNew]
-                # handle errors
-                except urllib2.HTTPError as e:
-                    print("HTTP Error:", e.code, url)
-                except urllib2.URLError as e:
-                    print("URL Error:", e.reason, url)
-
-            return True
-    else:
-        print('No Internet connection, unable to get ESA\'s ephs.')
-        return False
 
 '''
 #==============================================================================
@@ -1169,11 +1132,8 @@ def esa_eph_download_helper(args):
         html_seg = html_seg.split('\n')
         html_seg = [l for l in html_seg if len(l) > 5 and (l.strip()[0] != '#' and l.strip()[0] != '<')]
     # handle errors
-    except urllib2.HTTPError as e:
-        print("HTTP Error:", e.code, eph_url)
-        html_seg = []
-    except urllib2.URLError as e:
-        print("URL Error:", e.reason, eph_url)
+    except Exception as _e:
+        print(f"request failed: {str(_e)}")
         html_seg = []
     # print(sc_name, seg_start, seg_stop, ref_object, frame, scale, len(html_seg))
     # save current segment
@@ -1499,356 +1459,6 @@ def esa_sc_eph_make(source, date_t_start, date_t_stop, inp, paddLeft=30, paddRig
                 f.write(line)
 
     return sc_bcrs_eph, sc_gtrs_eph, sc_gcrs_eph
-
-'''
-#==============================================================================
-# Download ESA s/c ephemerides from tasc.esa.int
-#==============================================================================
-'''
-def esa_sc_eph_down(source, date_t_start, date_t_end, inp):
-    orbtyp = 'ops'
-
-    if source=='VEX': staobj='Venus-Express'
-    if source=='MEX': staobj='Mars-Express'
-    if source=='HER': staobj='Herschel'
-
-    sc_eph_cat = inp['sc_eph_cat'] # location of the dir with s/c eph cat
-
-    ''' Barycentric ephemeris '''
-    # 30 min beidseitig padding:
-    t_start = date_t_start - datetime.timedelta(seconds=30*60)
-    t_end = date_t_end + datetime.timedelta(seconds=30*60)
-
-    # because of a stupid limitation on the website of 10000 maximum epochs
-    # in one go...:
-    if source=='MEX' or source=='HER':
-        t_step_bc=5
-    else:
-        t_step_bc=1
-
-    sc_bcrs_eph = source.lower()+'.bcrs.tdb.'+str(t_start.year)[2:]+\
-                '%02d'%date_t_start.month+'%02d'%date_t_start.day+'.eph'
-    # check whether the file with eph exists
-    if os.path.isfile(sc_eph_cat+'/'+sc_bcrs_eph):
-        eph_bc_exist = 1
-    else:
-        eph_bc_exist = 0
-    # if it does, check that T_obs is within the time slot of the existing ephemeris
-    t_obs_out_of_eph_boundary = 0
-    if eph_bc_exist:
-        # load it:
-        with open(sc_eph_cat+'/'+sc_bcrs_eph, 'r') as f:
-            tmp = f.readlines()
-        eph = []
-        # do what the matlab function load does (convert strings to floats):
-        for line in tmp:
-            line = [float(x) for x in line.split()]
-            line[0:6] = list(map(int, line[0:6]))
-            eph.append(line)
-        eph_start = datetime.datetime(*eph[0][0:6])
-        eph_end = datetime.datetime(*eph[-1][0:6])
-        if (t_start < eph_start) or (t_end > eph_end):
-            t_obs_out_of_eph_boundary = 1
-
-    # now download/update the eph
-    if eph_bc_exist != 1 or t_obs_out_of_eph_boundary == 1:
-        if eph_bc_exist != 1:
-            print('S/C bc ephemeris file: '+sc_bcrs_eph+' not found, downloading...')
-        if t_obs_out_of_eph_boundary == 1:
-            print('T_obs is not within the existing bc ephemeris time range. Updating '+sc_bcrs_eph+'...')
-
-        eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
-                'mission='+source+'&'+\
-                'querytyp=data&'+\
-                'qtyp=sta&'+\
-                'staobj='+staobj+'&'+\
-                'starefobj=Solar+System+Barycentre&'+\
-                'staltc=NO&'+\
-                'stafrm=mean+equatorial+J2000&'+\
-                'matfrm=mean+equatorial+J2000&'+\
-                'quafrm=mean+equatorial+J2000&'+\
-                'angobj1=Earth&'+\
-                'angobj2=Sun&'+\
-                'angrefobj='+staobj+'&'+\
-                'tscl=TDB&'+\
-                'tstart='+str(t_start.year)+\
-                            '%2F'+'%02d'%t_start.month+\
-                            '%2F'+'%02d'%t_start.day+'+'+\
-                            '%02d'%t_start.hour+'%3A'+\
-                            '%02d'%t_start.minute+'%3A'+\
-                            '%06.3f'%t_start.second+'&'+\
-                'tend='+str(t_end.year)+\
-                            '%2F'+'%02d'%t_end.month+\
-                            '%2F'+'%02d'%t_end.day+'+'+\
-                            '%02d'%t_end.hour+'%3A'+\
-                            '%02d'%t_end.minute+'%3A'+\
-                            '%06.3f'%t_end.second+'&'+\
-                'tstp=000+00%3A00%3A'+'%06.3f'%t_step_bc+'&orbtyp='+\
-                orbtyp
-        #print eph_url
-        response = urllib2.urlopen(eph_url)
-        html = response.read()
-        #print html
-        html = html.split('\n')
-        html_copy = []
-        for line in html:
-            if len(line)>5 and (line.strip()[0]!='#' and line.strip()[0]!='<'):
-                for char in (':','T','/'):
-                    line = line.replace(char,' ')
-                html_copy.append(line)
-        # print it to file:
-        with open(os.path.join(sc_eph_cat,sc_bcrs_eph),'w') as out:
-            for line in html_copy:
-                out.write(line+'\n')
-
-
-    ''' Geocentric ephemeris without lt-correction '''
-    # if no need for padding:
-    #t_start = date_t_start
-    #t_end = date_t_end
-    # if 30 min beidseitig padding - keep the same t_start and t_end
-
-    #t_step_gc = 10 #seconds
-
-    # because of a stupid limitation on the website of 10000 maximum epochs
-    # in one go...:
-    if source == 'MEX' or source == 'HER':
-        t_step_gc=5
-    else:
-        t_step_gc=1
-
-    #sc_gtrs_eph = source.lower()+'.gc.ut.ltcorr'+str(t_start.year)[2:]+\
-    sc_gtrs_eph = source.lower()+'.gtrs.utc.'+str(t_start.year)[2:]+\
-                '%02d'%date_t_start.month+'%02d'%date_t_start.day+'.eph'
-    # check whether the file with eph exists
-    if os.path.isfile(sc_eph_cat+'/'+sc_gtrs_eph):
-        eph_gc_exist = 1
-    else:
-        eph_gc_exist = 0
-    # if it does, check that T_obs is within the time slot of the existing ephemeris
-    t_obs_out_of_eph_boundary = 0
-    if eph_gc_exist:
-        # load it:
-        f = open(sc_eph_cat+'/'+sc_gtrs_eph,'r')
-        tmp = f.readlines()
-        eph = []
-        # do what the matlab function load does (convert strings to floats):
-        for line in tmp:
-            line = [float(x) for x in line.split()]
-            line[0:6] = list(map(int, line[0:6]))
-            eph.append(line)
-        eph_start = datetime.datetime(eph[0][0], eph[0][1], eph[0][2], eph[0][3], eph[0][4], eph[0][5])
-        eph_end = datetime.datetime(eph[-1][0], eph[-1][1], eph[-1][2], eph[-1][3], eph[-1][4], eph[-1][5])
-        if (t_start < eph_start) or (t_end > eph_end):
-            t_obs_out_of_eph_boundary = 1
-
-    # now download/update the GTRS eph
-    if eph_gc_exist != 1 or t_obs_out_of_eph_boundary == 1:
-        if eph_gc_exist != 1:
-            print('S/C gtrs ephemeris file: '+sc_gtrs_eph+' not found, downloading...')
-        if t_obs_out_of_eph_boundary == 1:
-            print('T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gtrs_eph+'...')
-
-        # DO NOT LT-CORRECT!!
-        eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
-                'mission='+source+'&'+\
-                'querytyp=data&'+\
-                'qtyp=sta&'+\
-                'staobj='+staobj+'&'+\
-                'starefobj=Earth&'+\
-                'staltc=NO&'+\
-                'stafrm=Earth+fixed&'+\
-                'matfrm=mean+equatorial+J2000&'+\
-                'quafrm=mean+equatorial+J2000&'+\
-                'angobj1=Earth&'+\
-                'angobj2=Sun&'+\
-                'angrefobj='+staobj+'&'+\
-                'tscl=UTC&'+\
-                'tstart='+str(t_start.year)+\
-                            '%2F'+'%02d'%t_start.month+\
-                            '%2F'+'%02d'%t_start.day+'+'+\
-                            '%02d'%t_start.hour+'%3A'+\
-                            '%02d'%t_start.minute+'%3A'+\
-                            '%06.3f'%t_start.second+'&'+\
-                'tend='+str(t_end.year)+\
-                            '%2F'+'%02d'%t_end.month+\
-                            '%2F'+'%02d'%t_end.day+'+'+\
-                            '%02d'%t_end.hour+'%3A'+\
-                            '%02d'%t_end.minute+'%3A'+\
-                            '%06.3f'%t_end.second+'&'+\
-                'tstp=000+00%3A00%3A'+'%06.3f'%t_step_gc+'&orbtyp='+\
-                orbtyp
-        #print eph_url
-        response = urllib2.urlopen(eph_url)
-        html = response.read()
-        #print html
-        html = html.split('\n')
-        html_copy = []
-        for line in html:
-#            print len(line)
-            if len(line)>2 and (line.strip()[0]!='#' and line.strip()[0]!='<'):
-                for char in (':','T','/'):
-                    line = line.replace(char,' ')
-                html_copy.append(line[0:75])
-
-        eph = []
-        # do what the matlab function load does (convert strings to floats):
-        for line in html_copy:
-            line = [float(x) for x in line.split()]
-            line[0:5] = list(map(int, line[0:5]))
-            eph.append(line)
-
-        UT_eph = [(ep[3] + ep[4]/60.0 + ep[5]/3600.0)/24.0 for ep in eph]
-        # allow for 'overnighters':
-        dd = mjuliandate(*eph[-1][0:3])-mjuliandate(*eph[0][0:3])
-        for cr in range(1, int(dd)+1):
-            for nn in range(1, len(UT_eph)):
-                 if UT_eph[nn] < UT_eph[nn-1]:
-                      UT_eph[nn] = UT_eph[nn] + 1
-
-        ''' calculate v and a using a nth-order Chebyshёv poly '''
-        eph = np.array(eph)
-        nth = 7
-        v = np.zeros((len(UT_eph), 3))
-        while nth < 12:
-            try:
-                for jj in range(9,12):
-                    p = cheb.chebfit(UT_eph, eph[:, jj-3], nth)
-                    v[:, jj-9] = cheb.chebval(UT_eph, cheb.chebder(p)) / 86400.0
-            except:
-                # didn't work? try a higher order then
-                nth += 1
-            else:
-                # went well? exit loop then
-                break
-        eph = np.hstack((eph,v))
-
-        nth = 7
-        a = np.zeros((len(UT_eph),3))
-        while nth<12:
-            try:
-                for jj in range(12,15):
-                    p = cheb.chebfit(UT_eph,eph[:,jj-3], nth)
-                    a[:,jj-12] = cheb.chebval(UT_eph,
-                                 cheb.chebder(p)) / 86400.0
-            except:
-                # didn't? try a higher order then
-                nth += 1
-            else:
-                # went well? exit loop then
-                break
-        eph = np.hstack((eph,a))
-
-
-        # print it to file:
-        f = open(sc_eph_cat+'/'+sc_gtrs_eph,'w')
-        for ep in eph:
-            datestr = list(map(int, ep[0:5]))
-            datestr.append(ep[5])
-            s = '{:5d} {:02d} {:02d} {:02d} {:02d} {:06.3f} '\
-                 .format(*datestr)+\
-                '{:20.6f} {:18.6f} {:18.6f} {:16.10f} {:15.10f} {:15.10f} '\
-                .format(*ep[6:12])+\
-                '{:16.10f} {:15.10f} {:15.10f}\n'\
-                .format(*ep[12:15])
-            f.write(s)
-        f.close()
-
-    # make a GCRS ephemeris:
-    sc_gcrs_eph = source.lower()+'.gcrs.utc.'+str(t_start.year)[2:]+\
-                  '%02d'%date_t_start.month+'%02d'%date_t_start.day+'.eph'
-    # check whether the file with eph exists
-    if os.path.isfile(sc_eph_cat+'/'+sc_gcrs_eph):
-        eph_gcrs_exist = 1
-    else:
-        eph_gcrs_exist = 0
-    # if it does, check that T_obs is within the time slot of the existing ephemeris
-    t_obs_out_of_eph_boundary = 0
-    if eph_gcrs_exist:
-        # load it:
-        f = open(sc_eph_cat+'/'+sc_gcrs_eph,'r')
-        tmp = f.readlines()
-        eph = []
-        # do what the matlab function load does (convert strings to floats):
-        for line in tmp:
-            line = [float(x) for x in line.split()]
-            line[0:6] = list(map(int, line[0:6]))
-            eph.append(line)
-        eph_start = datetime.datetime(*eph[0][0:6])
-        eph_end = datetime.datetime(*eph[-1][0:6])
-        if (t_start < eph_start) or (t_end > eph_end):
-            t_obs_out_of_eph_boundary = 1
-
-    # now make/update the GCRS eph in UTC time stamps
-    # this is used to calculate ra/dec's
-    if eph_gcrs_exist != 1 or t_obs_out_of_eph_boundary == 1:
-        if eph_gcrs_exist != 1:
-            print('S/C gcrs ephemeris file: '+sc_gcrs_eph+' not found, calculating...')
-        if t_obs_out_of_eph_boundary == 1:
-            print('T_obs is not within the existing gtrs ephemeris time range. Updating '+sc_gcrs_eph+'...')
-
-        # load BCRS eph in UTC time stamps:
-        eph_url = 'http://tasc.esa.int/cgi-bin/query.html?'+\
-                'mission='+source+'&'+\
-                'querytyp=data&'+\
-                'qtyp=sta&'+\
-                'staobj='+staobj+'&'+\
-                'starefobj=Earth&'+\
-                'staltc=NO&'+\
-                'stafrm=mean+equatorial+J2000&'+\
-                'matfrm=mean+equatorial+J2000&'+\
-                'quafrm=mean+equatorial+J2000&'+\
-                'angobj1=Earth&'+\
-                'angobj2=Sun&'+\
-                'angrefobj='+staobj+'&'+\
-                'tscl=UTC&'+\
-                'tstart='+str(t_start.year)+\
-                            '%2F'+'%02d'%t_start.month+\
-                            '%2F'+'%02d'%t_start.day+'+'+\
-                            '%02d'%t_start.hour+'%3A'+\
-                            '%02d'%t_start.minute+'%3A'+\
-                            '%06.3f'%t_start.second+'&'+\
-                'tend='+str(t_end.year)+\
-                            '%2F'+'%02d'%t_end.month+\
-                            '%2F'+'%02d'%t_end.day+'+'+\
-                            '%02d'%t_end.hour+'%3A'+\
-                            '%02d'%t_end.minute+'%3A'+\
-                            '%06.3f'%t_end.second+'&'+\
-                'tstp=000+00%3A00%3A'+'%06.3f'%t_step_bc+'&orbtyp='+\
-                orbtyp
-        #print eph_url
-        response = urllib2.urlopen(eph_url)
-        html = response.read()
-        #print html
-        html = html.split('\n')
-        eph = []
-        for line in html:
-            if len(line)>2 and (line.strip()[0]!='#' and line.strip()[0]!='<'):
-                for char in (':','T','/'):
-                    line = line.replace(char,' ')
-                eph.append(line)
-
-        # save to file:
-        f = open(sc_eph_cat+'/'+sc_gcrs_eph,'w')
-        for ep in eph:
-            ep = [float(x) for x in ep.split()]
-            ep[0:5] = list(map(int, ep[0:5]))
-#            mjd = mjuliandate(ep[0],ep[1],ep[2])
-#            JD = mjd + 2400000.5
-#            CT = (ep[3] + ep[4]/60.0 + ep[5]/3600.0)/24.0
-            ''' calculate state vector of the Earth at JD+CT, in [km, km/s] '''
-#            earth = pleph(JD+CT, 3, 12, inp['jpl_eph'])
-#                .format(*(ep[6:12]-earth))+\
-            s = '{:5d} {:02d} {:02d} {:02d} {:02d} {:06.3f} '\
-                 .format(*ep[0:6])+\
-                '{:20.6f} {:18.6f} {:18.6f} {:16.10f} {:15.10f} {:15.10f} '\
-                .format(*ep[6:12])+\
-                '{:16.10f} {:15.10f} {:15.10f}\n'\
-                .format(*np.zeros(3))
-            f.write(s)
-        f.close()
-
-    return (sc_bcrs_eph, sc_gtrs_eph, sc_gcrs_eph)
 
 
 '''
@@ -2380,11 +1990,14 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
 
     return sc_bcrs_eph, sc_gtrs_eph, sc_gcrs_eph
 
+
 '''
 #==============================================================================
 #  Load eph in IPM-style scf format
 #==============================================================================
 '''
+
+
 def load_scf(scf_file):
     with open(scf_file,'r') as f:
         f_lines = f.readlines()
@@ -2397,19 +2010,21 @@ def load_scf(scf_file):
             for char in (':', 'T', '/', '-'):
                 # this determines time stamp accuracy, actually:
                 firstSpacePos = line.index(' ')
-                line = line[0:firstSpacePos].replace(char,' ') + \
-                       line[firstSpacePos:]
+                line = line[0:firstSpacePos].replace(char, ' ') + line[firstSpacePos:]
             line = [float(x) for x in line.split()]
             line[0:5] = list(map(int, line[0:5]))
             eph.append(line)
     # convert output to a numpy array
     return np.asarray(eph)
 
+
 '''
 #==============================================================================
 #  Download and load eph in sp3-format for GNSS
 #==============================================================================
 '''
+
+
 def load_sp3(sc_eph_cat, source, date_t_start, load=True):
     '''
         Download and load sp3-file for GNSS
@@ -2418,21 +2033,19 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
     mjd = mjuliandate(date_t_start.year, date_t_start.month, date_t_start.day)
     jd = mjd + 2400000.5
     dow = np.fmod(jd + 0.5, 7) + 1
-    gnss_week = np.floor( (mjd - mjuliandate(1980,1,7))/7.0 )
-    if dow==7:
-        dow=0
+    gnss_week = np.floor((mjd - mjuliandate(1980, 1, 7))/7.0)
+    if dow == 7:
+        dow = 0
         gnss_week += 1
 
     gnss_week = int(gnss_week)
     dow = int(dow)
 
-    if source[0:2].lower() == 'pr': # GLONASS
-        gnss_sp3 = os.path.join(sc_eph_cat,'raw_gnss/igl{:04d}{:01d}.sp3'.\
-                                format(gnss_week, dow))
+    if source[0:2].lower() == 'pr':  # GLONASS
+        gnss_sp3 = os.path.join(sc_eph_cat, 'raw_gnss/igl{:04d}{:01d}.sp3'.format(gnss_week, dow))
         sp3_name = 'igl{:04d}{:01d}.sp3'.format(gnss_week, dow)
-    elif source[0:2].lower() == 'pg': # GPS
-        gnss_sp3 = os.path.join(sc_eph_cat,'raw_gnss/igs{:04d}{:01d}.sp3'.\
-                                format(gnss_week, dow))
+    elif source[0:2].lower() == 'pg':  # GPS
+        gnss_sp3 = os.path.join(sc_eph_cat, 'raw_gnss/igs{:04d}{:01d}.sp3'.format(gnss_week, dow))
         sp3_name = 'igs{:04d}{:01d}.sp3'.format(gnss_week, dow)
     else:
         raise Exception('Wrong GNSS source name')
@@ -2448,15 +2061,13 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
             elif 'igs' in sp3_name:
                 folder = 'gps'
             ftp.cwd(folder+'/products/{:04d}'.format(gnss_week))
-            if '{:s}.Z'.format(sp3_name) in ftp.nlst(): # check that the file is there
-                ftp.retrbinary('RETR {:s}.Z'.format(sp3_name),
-                           open('{:s}.Z'.format(gnss_sp3), 'wb').write)
+            if '{:s}.Z'.format(sp3_name) in ftp.nlst():  # check that the file is there
+                ftp.retrbinary('RETR {:s}.Z'.format(sp3_name), open('{:s}.Z'.format(gnss_sp3), 'wb').write)
                 # uncompress:
                 print('uncompressing: ' + '{:s}.Z'.format(sp3_name) + '...')
                 os.system('uncompress -f {:s}'.format(gnss_sp3))
             else:
-                raise Exception('file {:s} not found on the server. fail!'.\
-                        format(sp3_name+'.Z'))
+                raise Exception('file {:s} not found on the server. fail!'.format(sp3_name+'.Z'))
             ftp.quit()
 
         except Exception as err:
@@ -2471,7 +2082,7 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
         # remove comments:
         f_lines = [l for l in f_lines if l[0] not in ['#','+','%','/']]
         # extract time in GPS time scale and convert to UTC:
-        utc_gps = nsec(mjd) - nsec(mjuliandate(1980,1,6))
+        utc_gps = nsec(mjd) - nsec(mjuliandate(1980, 1, 6))
         time = [list(map(float, t[1:].split())) for t in f_lines if t[0] == '*']
         time = [datetime.datetime(*list(map(int, t))) - datetime.timedelta(seconds=utc_gps) for t in time]
         time = [[t.year, t.month, t.day, t.hour, t.minute, t.second] for t in time]
@@ -2483,7 +2094,7 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
         for t, r in zip(time, xyz):
             eph.append(t + r)
 
-        #convert output to a numpy array
+        # convert output to a numpy array
         return np.asarray(eph)
 
 
@@ -2492,9 +2103,10 @@ def load_sp3(sc_eph_cat, source, date_t_start, load=True):
 #
 #==============================================================================
 '''
-#@jit
+
+
 def taitime(mjd, UTC):
-    '''
+    """
     TAITIME computes the atomic (TAI) and terrestrial time (TT) from the UTC time
     Input variables:
         1.   mjd - THE MODIFIED JULIAN DATE AT 0:00 UTC OF THE DATE IN QUESTION.
@@ -2502,8 +2114,8 @@ def taitime(mjd, UTC):
     Output variables:
         1.   TAI - THE ATOMIC TIME FRACTION OF THE ATOMIC TIME DAY. (DAYS)
         2.   TT  - TIME measured in days of TT. (DAYS)
-    '''
-    if UTC<0:
+    """
+    if UTC < 0:
         # Compute the atomic time fraction of the atomic time day.
         TAI = UTC+1 + nsec(float(mjd-1)) / 86400.0
     else:
@@ -2512,11 +2124,7 @@ def taitime(mjd, UTC):
     TT = TAI + 32.184/86400.0
     return TAI, TT
 
-'''
-#==============================================================================
-#
-#==============================================================================
-'''
+
 def eop_iers(mjd, UTC, eops):
     '''
     This function takes a series of x, y, UT1-UTC, dX and dY values
@@ -2550,12 +2158,12 @@ def eop_iers(mjd, UTC, eops):
      python version by D. DUEV (JIVE): October 2013
      '''
 
-    RJD = eops[:,0]
-    X = eops[:,3]
-    Y = eops[:,4]
-    UT1 = eops[:,1]
-    dX = eops[:,5]
-    dY = eops[:,6]
+    RJD = eops[:, 0]
+    X = eops[:, 3]
+    Y = eops[:, 4]
+    UT1 = eops[:, 1]
+    dX = eops[:, 5]
+    dY = eops[:, 6]
 #    n = len(eops[:,0])
 
     rjd_int = mjd + UTC
@@ -2567,11 +2175,11 @@ def eop_iers(mjd, UTC, eops):
 #    dY_int = LAGINT (RJD,dY,n,rjd_int)
 #    print x_int, y_int, ut1_int, dX_int, dY_int
 
-    x_int = lagint(4,RJD,X,rjd_int)[0][0]
-    y_int = lagint(4,RJD,Y,rjd_int)[0][0]
-    ut1_int = lagint(4,RJD,UT1,rjd_int)[0][0]
-    dX_int = lagint(4,RJD,dX,rjd_int)[0][0]
-    dY_int = lagint(4,RJD,dY,rjd_int)[0][0]
+    x_int = lagint(4, RJD, X, rjd_int)[0][0]
+    y_int = lagint(4, RJD, Y, rjd_int)[0][0]
+    ut1_int = lagint(4, RJD, UT1, rjd_int)[0][0]
+    dX_int = lagint(4, RJD, dX, rjd_int)[0][0]
+    dY_int = lagint(4, RJD, dY, rjd_int)[0][0]
 
     # --------------
     # Oceanic effect
@@ -2596,8 +2204,7 @@ def eop_iers(mjd, UTC, eops):
 
     return ut1, eop_int
 
-## ----------------------------------------------------------------
-#@numba.jit('f8(f8[:], f8[:], i8, f8)')
+
 def LAGINT(X, Y, n, xint):
     '''
      This subroutine performs lagrangian interpolation
@@ -2632,7 +2239,6 @@ def LAGINT(X, Y, n, xint):
     return yout
 
 
-#@numba.jit('f8(f8)')
 def PMUT1_OCEANS(rjd):
     '''
      This subroutine provides, in time domain, the diurnal/subdiurnal
@@ -11732,12 +11338,11 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                     print('spd file {:s} not found, downloading...'.format(spd_file))
                     try:
                         met_url = os.path.join(petrov_server, spd_file)
-                        response = urllib2.urlopen(met_url)
-                        met_file = response.read()
-                        # print it to file:
-                        with open(os.path.join(meteo_cat, spd_file), 'w') as out:
-                            for line in met_file:
-                                out.write(line)
+                        response = requests.get(met_url)
+                        if response.status_code == 200:
+                            with open(os.path.join(meteo_cat, spd_file), 'wb') as f:
+                                f.write(response.content)
+
                     except Exception as err:
                         print(err)
 
@@ -11750,15 +11355,13 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
             vmf_file = '{:4d}{:03d}.vmf1_r'.format(year, doy)
             if not os.path.isfile(meteo_cat+'/'+vmf_file):
                 try:
-                    print('vmf1 meteo file '+vmf_file + ' not found, downloading...')
-                    met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/SITE/VLBI/'+\
-                              str(year)+'/'+vmf_file
-                    response = urllib2.urlopen(met_url)
-                    met_file = response.read()
-                    # print it to file:
-                    with open(os.path.join(meteo_cat, vmf_file), 'w') as out:
-                        for line in met_file:
-                            out.write(line)
+                    print('vmf1 meteo file '+ vmf_file + ' not found, downloading...')
+                    met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/SITE/VLBI/'+ str(year) + '/' + vmf_file
+                    response = requests.get(met_url)
+                    if response.status_code == 200:
+                        with open(os.path.join(meteo_cat, vmf_file), 'wb') as f:
+                            f.write(response.content)
+
                 except Exception as err:
                     print(str(err))
                     print('no troposphere available this time.')
@@ -11771,12 +11374,10 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                     print('tropo gradient file '+lhg_file+' not found, downloading...')
                     met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/ETC/LHG/VLBI/'+\
                                 str(year)+'/'+lhg_file
-                    response = urllib2.urlopen(met_url)
-                    met_file = response.read()
-                    # print it to file:
-                    with open(os.path.join(meteo_cat, lhg_file), 'w') as out:
-                        for line in met_file:
-                            out.write(line)
+                    response = requests.get(met_url)
+                    if response.status_code == 200:
+                        with open(os.path.join(meteo_cat, lhg_file), 'wb') as f:
+                            f.write(response.content)
                 except Exception as err:
                     print(str(err))
                     print('no tropo gradients available this time.')
@@ -11791,12 +11392,11 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                     try:
                         met_url = 'http://ggosatm.hg.tuwien.ac.at/DELAY/GRID/VMFG/'+\
                                   str(year) + '/' + vmf_grid_file + hh
-                        response = urllib2.urlopen(met_url)
-                        met_file = response.read()
-                        # print it to file:
-                        with open(meteo_cat+'/'+vmf_grid_file+hh,'w') as out:
-                            for line in met_file:
-                                out.write(line)
+                        response = requests.get(met_url)
+                        if response.status_code == 200:
+                            with open(os.path.join(meteo_cat, vmf_grid_file+hh), 'wb') as f:
+                                f.write(response.content)
+
                     except Exception as err:
                         print(str(err))
                         print('TU Wien server is down or does not have needed'+
@@ -11804,12 +11404,10 @@ def doup(do_trp_calc, do_ion_calc, cat_eop, meteo_cat, ion_cat,
                         try:
                             met_url = 'http://unb-vmf1.gge.unb.ca/pub/unbvmfG/'+\
                                       str(year) + '/UNB' + vmf_grid_file + hh
-                            response = urllib2.urlopen(met_url)
-                            met_file = response.read()
-                            # print it to file:
-                            with open(meteo_cat+'/'+vmf_grid_file+hh,'w') as out:
-                                for line in met_file:
-                                    out.write(line)
+                            response = requests.get(met_url)
+                            if response.status_code == 200:
+                                with open(os.path.join(meteo_cat, vmf_grid_file + hh), 'wb') as f:
+                                    f.write(response.content)
                         except Exception as err:
                             print(str(err))
                             print('no vmf1 grid data this time')
