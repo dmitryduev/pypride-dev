@@ -9,9 +9,12 @@ import os
 # fortran module to be compiled with f2py:
 admint2 = Extension(name='admint2',
                     sources=['pypride/admint2.f90'])
+lagrange = Extension(name='admint2',
+                     sources=['pypride/lagrange.f90'])
 # fort = Extension(name='fort',
 #                  sources=['pypride/fort.f'])
 
+bins = [os.path.join('pypride/bin', l) for l in os.listdir('pypride/bin') if l[-3:] == '.py']
 
 setup(name='pypride',
       description='Python Tools for Planetary Interferometry and Doppler Experiments',
@@ -24,9 +27,11 @@ setup(name='pypride',
       packages=['pypride'],
       package_dir={'pypride': 'pypride'},
       # ext_package='pypride',
-      ext_modules=[admint2],
+      ext_modules=[admint2, lagrange],
+      scripts=bins,
       install_requires=['astropy>=3.2.1',
                         'jplephem>=2.9',
+                        'multidict>=4.7.4',
                         'numba>=0.45.1',
                         'numpy>=1.13',
                         'paramiko>=2.6.0',
