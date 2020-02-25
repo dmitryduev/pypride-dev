@@ -1868,13 +1868,13 @@ def ra_eph_down(source, date_t_start, date_t_end, inp):
 
             ''' calculate state vector of the Earth at JD+CT, in [m, m/s] '''
             rrd = pleph(JD+CT, 3, 12, jpl_eph)
-            earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+            earth = np.vstack(rrd).T * 1e3
 
             ''' BCRS position'''
             if source.lower()[0]=='p':
                 ## Sun:
                 rrd = pleph(JD+CT, 11, 12, inp['jpl_eph'])
-                sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+                sun = np.vstack(rrd).T * 1e3
                 U = const.GSUN / norm(sun[:,0]-earth[:,0])
 #                sc_bcrs[ii,6:9] = dot(r2000[:,:,0], sc_gtrs[ii,6:9].T) \
 #                                   + earth[:,0]
@@ -11766,7 +11766,7 @@ def vint_s(ob):
         ## Earth:
 #        print JD
         rrd = pleph(JD+CT, 3, 12, inp['jpl_eph'])
-        earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         # Earth's acceleration in m/s**2:
         v_plus = np.array(pleph(JD+CT+1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
         v_minus = np.array(pleph(JD+CT-1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -11776,22 +11776,22 @@ def vint_s(ob):
 #        print earth[:,0]
         ## Sun:
         rrd = pleph(JD+CT, 11, 12, inp['jpl_eph'])
-        sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        sun = np.vstack(rrd).T * 1e3
 #        print sun[:,0]
         ## Moon:
         rrd = pleph(JD+CT, 10, 12, inp['jpl_eph'])
-        moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        moon = np.vstack(rrd).T * 1e3
         ## Planets:
 #        planets = []
 #        for jj in (1,2,4,5,6,7,8):
 #            rrd = pleph(JD+CT, jj, 12, inp['jpl_eph'])
-#            planets.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
+#            planets.append(np.vstack(rrd).T * 1e3)
         ## All SSBC vectors in one list for near-field:
         if ob.sou_type!='C':
             state_ss = []
             for jj in (1,2,4,5,6,7,8,9):
                 rrd = pleph(JD+CT, jj, 12, inp['jpl_eph'])
-                state_ss.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
+                state_ss.append(np.vstack(rrd).T * 1e3)
             state_ss.insert(2,earth)
             state_ss.append(moon)
             state_ss.append(sun)
@@ -15585,18 +15585,18 @@ def delay_moyer(tjd, t_1, dd, r_1, r_2, v_2, a_2, state_ss, tdb, bcrs,
         ## Earth:
         JD = tjd
         rrd = pleph(JD+t_0/86400.0, 3, 12, inp['jpl_eph'])
-        earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         ## Sun:
         rrd = pleph(JD+t_0/86400.0, 11, 12, inp['jpl_eph'])
-        sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        sun = np.vstack(rrd).T * 1e3
         ## Moon:
         rrd = pleph(JD+t_0/86400.0, 10, 12, inp['jpl_eph'])
-        moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        moon = np.vstack(rrd).T * 1e3
 
         state_ss_t0 = []
         for jj in (1,2,4,5,6,7,8,9):
             rrd = pleph(JD+t_0/86400.0, jj, 12, inp['jpl_eph'])
-            state_ss_t0.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
+            state_ss_t0.append(np.vstack(rrd).T * 1e3)
         state_ss_t0.insert(2,earth)
         state_ss_t0.append(moon)
         state_ss_t0.append(sun)
@@ -15639,18 +15639,18 @@ def delay_moyer(tjd, t_1, dd, r_1, r_2, v_2, a_2, state_ss, tdb, bcrs,
     ## Earth:
     JD = tjd
     rrd = pleph(JD+t_0/86400.0, 3, 12, inp['jpl_eph'])
-    earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    earth = np.vstack(rrd).T * 1e3
     ## Sun:
     rrd = pleph(JD+t_0/86400.0, 11, 12, inp['jpl_eph'])
-    sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    sun = np.vstack(rrd).T * 1e3
     ## Moon:
     rrd = pleph(JD+t_0/86400.0, 10, 12, inp['jpl_eph'])
-    moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    moon = np.vstack(rrd).T * 1e3
 
     state_ss_t0 = []
     for jj in (1,2,4,5,6,7,8,9):
         rrd = pleph(JD+t_0/86400.0, jj, 12, inp['jpl_eph'])
-        state_ss_t0.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
+        state_ss_t0.append(np.vstack(rrd).T * 1e3)
     state_ss_t0.insert(2,earth)
     state_ss_t0.append(moon)
     state_ss_t0.append(sun)
@@ -15938,7 +15938,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
         ''' BCRS state vectors of celestial bodies at t_0, [m, m/s]: '''
         ## Earth:
         rrd = pleph(jd + t_0 / 86400.0, 3, 12, inp['jpl_eph'])
-        earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         # Earth's acceleration in m/s**2:
         v_plus = np.array(pleph(jd + t_0 / 86400.0 + 1.0 / 86400.0, 3, 12, inp['jpl_eph'])[3:])
         v_minus = np.array(pleph(jd + t_0 / 86400.0 - 1.0 / 86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -15947,15 +15947,15 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
         earth = np.hstack((earth, a))
         ## Sun:
         rrd = pleph(jd + t_0 / 86400.0, 11, 12, inp['jpl_eph'])
-        sun = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        sun = np.vstack(rrd).T * 1e3
         ## Moon:
         rrd = pleph(jd + t_0 / 86400.0, 10, 12, inp['jpl_eph'])
-        moon = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        moon = np.vstack(rrd).T * 1e3
 
         state_ss_t0 = []
         for jj in (1, 2, 4, 5, 6, 7, 8, 9):
             rrd = pleph(jd + t_0 / 86400.0, jj, 12, inp['jpl_eph'])
-            state_ss_t0.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+            state_ss_t0.append(np.vstack(rrd).T * 1e3)
         state_ss_t0.insert(2, earth)
         state_ss_t0.append(moon)
         state_ss_t0.append(sun)
@@ -15989,18 +15989,18 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
         ''' BCRS state vectors of celestial bodies at t_2, [m, m/s]: '''
         ## Earth:
         rrd = pleph(jd + t_2 / 86400.0, 3, 12, inp['jpl_eph'])
-        earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         ## Sun:
         rrd = pleph(jd + t_2 / 86400.0, 11, 12, inp['jpl_eph'])
-        sun = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        sun = np.vstack(rrd).T * 1e3
         ## Moon:
         rrd = pleph(jd + t_2 / 86400.0, 10, 12, inp['jpl_eph'])
-        moon = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        moon = np.vstack(rrd).T * 1e3
 
         state_ss_t2 = []
         for jj in (1, 2, 4, 5, 6, 7, 8, 9):
             rrd = pleph(jd + t_2 / 86400.0, jj, 12, inp['jpl_eph'])
-            state_ss_t2.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+            state_ss_t2.append(np.vstack(rrd).T * 1e3)
         state_ss_t2.insert(2, earth)
         state_ss_t2.append(moon)
         state_ss_t2.append(sun)
@@ -16078,7 +16078,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
     # BCRS state vectors of celestial bodies at t_0, [m, m/s]:
     ## Earth:
     rrd = pleph(jd + t_0 / 86400.0, 3, 12, inp['jpl_eph'])
-    earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+    earth = np.vstack(rrd).T * 1e3
     # Earth's acceleration in m/s**2:
     v_plus = np.array(pleph(jd + t_0 / 86400.0 + 1.0 / 86400.0, 3, 12, inp['jpl_eph'])[3:])
     v_minus = np.array(pleph(jd + t_0 / 86400.0 - 1.0 / 86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -16087,15 +16087,15 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
     earth = np.hstack((earth, a))
     ## Sun:
     rrd = pleph(jd + t_0 / 86400.0, 11, 12, inp['jpl_eph'])
-    sun = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+    sun = np.vstack(rrd).T * 1e3
     ## Moon:
     rrd = pleph(jd + t_0 / 86400.0, 10, 12, inp['jpl_eph'])
-    moon = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+    moon = np.vstack(rrd).T * 1e3
 
     state_ss_t0 = []
     for jj in (1, 2, 4, 5, 6, 7, 8, 9):
         rrd = pleph(jd + t_0 / 86400.0, jj, 12, inp['jpl_eph'])
-        state_ss_t0.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+        state_ss_t0.append(np.vstack(rrd).T * 1e3)
     state_ss_t0.insert(2, earth)
     state_ss_t0.append(moon)
     state_ss_t0.append(sun)
@@ -16103,7 +16103,7 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
     # BCRS state vectors of celestial bodies at t_0, [m, m/s]:
     ## Earth:
     rrd = pleph(jd + t_0 / 86400.0, 3, 12, inp['jpl_eph'])
-    earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+    earth = np.vstack(rrd).T * 1e3
     # Earth's acceleration in m/s**2:
     v_plus = np.array(pleph(jd + t_0 / 86400.0 + 1.0 / 86400.0, 3, 12, inp['jpl_eph'])[3:])
     v_minus = np.array(pleph(jd + t_0 / 86400.0 - 1.0 / 86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -16112,15 +16112,15 @@ def delay_nf_moyer(jd, t_1_days, dd_days, state_ss_t1, tdb, bcrs, const, sta1, s
     earth = np.hstack((earth, a))
     ## Sun:
     rrd = pleph(jd + t_0 / 86400.0, 11, 12, inp['jpl_eph'])
-    sun = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+    sun = np.vstack(rrd).T * 1e3
     ## Moon:
     rrd = pleph(jd + t_0 / 86400.0, 10, 12, inp['jpl_eph'])
-    moon = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+    moon = np.vstack(rrd).T * 1e3
 
     state_ss_t0 = []
     for jj in (1, 2, 4, 5, 6, 7, 8, 9):
         rrd = pleph(jd + t_0 / 86400.0, jj, 12, inp['jpl_eph'])
-        state_ss_t0.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+        state_ss_t0.append(np.vstack(rrd).T * 1e3)
     state_ss_t0.insert(2, earth)
     state_ss_t0.append(moon)
     state_ss_t0.append(sun)
@@ -16507,7 +16507,7 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     ## Earth:
     JD = tjd
     rrd = pleph(JD+t_0/86400.0, 3, 12, inp['jpl_eph'])
-    earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    earth = np.vstack(rrd).T * 1e3
     # Earth's acceleration in m/s**2:
 #    v_plus = np.array(pleph(JD+t_0/86400.0+1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
 #    v_minus = np.array(pleph(JD+t_0/86400.0-1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -16516,15 +16516,15 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
 #    earth = np.hstack((earth, a))
     ## Sun:
     rrd = pleph(JD+t_0/86400.0, 11, 12, inp['jpl_eph'])
-    sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    sun = np.vstack(rrd).T * 1e3
     ## Moon:
     rrd = pleph(JD+t_0/86400.0, 10, 12, inp['jpl_eph'])
-    moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    moon = np.vstack(rrd).T * 1e3
 
     state_ss_t0 = []
     for jj in (1, 2, 4, 5, 6, 7, 8, 9):
         rrd = pleph(JD+t_0/86400.0, jj, 12, inp['jpl_eph'])
-        state_ss_t0.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
+        state_ss_t0.append(np.vstack(rrd).T * 1e3)
     state_ss_t0.insert(2, earth)
     state_ss_t0.append(moon)
     state_ss_t0.append(sun)
@@ -16678,7 +16678,7 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     ''' BCRS state vectors of celestial bodies at JD+CT, [m, m/s]: '''
     ## Earth:
     rrd = pleph(JD+CT, 3, 12, inp['jpl_eph'])
-    earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    earth = np.vstack(rrd).T * 1e3
     # Earth's acceleration in m/s**2:
     v_plus = np.array(pleph(JD+CT+1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
     v_minus = np.array(pleph(JD+CT-1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -16687,15 +16687,15 @@ def doppler_bc(tjd, t_1, dd, state_ss_t1, tdb, bcrs,
     earth = np.hstack((earth, a))
     ## Sun:
     rrd = pleph(JD+CT, 11, 12, inp['jpl_eph'])
-    sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    sun = np.vstack(rrd).T * 1e3
     ## Moon:
     rrd = pleph(JD+CT, 10, 12, inp['jpl_eph'])
-    moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+    moon = np.vstack(rrd).T * 1e3
 
     state_ss_t2 = []
     for jj in (1,2,4,5,6,7,8,9):
         rrd = pleph(JD+CT, jj, 12, inp['jpl_eph'])
-        state_ss_t2.append(np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3)
+        state_ss_t2.append(np.vstack(rrd).T * 1e3)
     state_ss_t2.insert(2,earth)
     state_ss_t2.append(moon)
     state_ss_t2.append(sun)
@@ -17026,7 +17026,7 @@ def pointings(source, stations, date_t_start, date_t_stop,
         ''' BCRS state vectors of celestial bodies at JD+CT, [m, m/s]: '''
         ## Earth:
         rrd = pleph(JD+CT, 3, 12, inp['jpl_eph'])
-        earth = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         # Earth's acceleration in m/s**2:
         v_plus = np.array(pleph(JD+CT+1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
         v_minus = np.array(pleph(JD+CT-1.0/86400.0, 3, 12, inp['jpl_eph'])[3:])
@@ -17035,10 +17035,10 @@ def pointings(source, stations, date_t_start, date_t_stop,
         earth = np.hstack((earth, a))
         ## Sun:
         rrd = pleph(JD+CT, 11, 12, inp['jpl_eph'])
-        sun = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        sun = np.vstack(rrd).T * 1e3
         ## Moon:
         rrd = pleph(JD+CT, 10, 12, inp['jpl_eph'])
-        moon = np.reshape(np.asarray(rrd), (3,2), 'F') * 1e3
+        moon = np.vstack(rrd).T * 1e3
 
         ''' rotation matrix IERS '''
         r2000 = ter2cel(tstamp, eop_int, dTAIdCT, 'iau2000')
