@@ -2126,7 +2126,7 @@ def taitime(mjd, UTC):
     return TAI, TT
 
 
-def eop_iers(mjd, UTC, _eops):
+def eop_iers(mjd, UTC, eops):
     """
     This function takes a series of x, y, UT1-UTC, dX and dY values
     and interpolates them to an epoch of choice. This routine
