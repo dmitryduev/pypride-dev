@@ -26,7 +26,8 @@ import collections
 
 # ex-fortran stuff
 # from .vintflib import lagint, lagintd, pleph, admint2
-from .vintflib import lagintd
+# from .vintflib import lagintd
+from lagrange import lagintd
 from admint2 import admint2
 from pysofa2 import Xys00a as iau_xys00a_fort
 
@@ -2125,8 +2126,8 @@ def taitime(mjd, UTC):
     return TAI, TT
 
 
-def eop_iers(mjd, UTC, eops):
-    '''
+def eop_iers(mjd, UTC, _eops):
+    """
     This function takes a series of x, y, UT1-UTC, dX and dY values
     and interpolates them to an epoch of choice. This routine
     assumes that the values of x and y are in seconds of
@@ -2156,15 +2157,16 @@ def eop_iers(mjd, UTC, eops):
                                          Corrected : September 2007
      matlab version by D. DUEV (JIVE): November 2011
      python version by D. DUEV (JIVE): October 2013
-     '''
+    """
+    _eops = deepcopy(eops)
 
-    RJD = eops[:, 0]
-    X = eops[:, 3]
-    Y = eops[:, 4]
-    UT1 = eops[:, 1]
-    dX = eops[:, 5]
-    dY = eops[:, 6]
-#    n = len(eops[:,0])
+    RJD = _eops[:, 0]
+    X = _eops[:, 3]
+    Y = _eops[:, 4]
+    UT1 = _eops[:, 1]
+    dX = _eops[:, 5]
+    dY = _eops[:, 6]
+#    n = len(_eops[:,0])
 
     rjd_int = mjd + UTC
 

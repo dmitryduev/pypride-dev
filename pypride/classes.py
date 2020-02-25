@@ -23,7 +23,9 @@ import struct
 import os
 from copy import deepcopy
 
-from .vintflib import lagint, pleph
+# from .vintflib import lagint, pleph
+from .vintflib import pleph
+from lagrange import lagint
 
 cheb = np.polynomial.chebyshev
 norm = np.linalg.norm
