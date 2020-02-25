@@ -14265,7 +14265,8 @@ def hardisp_calc(amp_ocean, phs_ocean, vw, t, r2000):
 
 #@jit
 #@numba.jit((double[:], double, double[:]))
-@numba.jit('(f8[:], f8, f8[:])')
+# @numba.jit('(f8[:], f8, f8[:])')
+@numba.jit
 def recurs(HC,NF,OM):
     '''
    +
