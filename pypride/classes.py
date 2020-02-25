@@ -1236,18 +1236,18 @@ class site(object):
         ''' BCRS state vectors of celestial bodies at JD+CT, [m, m/s]: '''
         ## Earth:
         rrd = pleph(JD + t_0_0, 3, 12, jpl_eph)
-        earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         ## Sun:
         rrd = pleph(JD + t_0_0, 11, 12, jpl_eph)
-        sun = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        sun = np.vstack(rrd).T * 1e3
         ## Moon:
         rrd = pleph(JD + t_0_0, 10, 12, jpl_eph)
-        moon = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        moon = np.vstack(rrd).T * 1e3
 
         state_ss = []
         for jj in (1, 2, 4, 5, 6, 7, 8, 9):
             rrd = pleph(JD + t_0_0, jj, 12, jpl_eph)
-            state_ss.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+            state_ss.append(np.vstack(rrd).T * 1e3)
         state_ss.insert(2, earth)
         state_ss.append(moon)
         state_ss.append(sun)
@@ -1364,7 +1364,7 @@ class site(object):
         # check if self.r_BCRS is set
         ## Earth:
         rrd = pleph(JD + t_1, 3, 12, jpl_eph)
-        earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         # low accuracy is good enough for this application:
         self.r_BCRS = earth[:, 0] + self.r_GCRS
 
@@ -1374,7 +1374,7 @@ class site(object):
         state_ss = []
         for jj in (1, 2, 4, 5, 6, 7, 8, 9, 10, 11):
             rrd = pleph(astropy_t_1.jd, jj, 12, jpl_eph)
-            state_ss.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+            state_ss.append(np.vstack(rrd).T * 1e3)
 
         while (abs(lt_01 - lt_01_tmp) > precision) and (nn < n_max):
             lt_01_tmp = lt_01
@@ -1398,7 +1398,7 @@ class site(object):
 
             for j, ii in enumerate((1, 2, 4, 5, 6, 7, 8, 9, 10, 11)):
                 rrd = pleph(JD + t_0, ii, 12, jpl_eph)
-                state = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+                state = np.vstack(rrd).T * 1e3
                 R_B = state[:, 0]
 
                 R_0_B = R_B - R_0
@@ -1814,7 +1814,7 @@ class ephem(object):
 
         ## Earth:
         rrd = pleph(astropy_t_1.jd, 3, 12, jpl_eph)
-        earth = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+        earth = np.vstack(rrd).T * 1e3
         R_1 = earth[:, 0]
         #        print 'R_1 = {:.18f} {:.18f} {:.18f}'.format(*R_1)
 
@@ -1831,7 +1831,7 @@ class ephem(object):
         state_ss = []
         for jj in (1, 2, 4, 5, 6, 7, 8, 9, 10, 11):
             rrd = pleph(astropy_t_1.jd, jj, 12, jpl_eph)
-            state_ss.append(np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3)
+            state_ss.append(np.vstack(rrd).T * 1e3)
         # back to UTC!:
         #        t_0_0 = t_1 - lt_01
 
@@ -1859,7 +1859,7 @@ class ephem(object):
 
             for j, ii in enumerate((1, 2, 4, 5, 6, 7, 8, 9, 10, 11)):
                 rrd = pleph(astropy_t_0.jd, ii, 12, jpl_eph)
-                state = np.reshape(np.asarray(rrd), (3, 2), 'F') * 1e3
+                state = np.vstack(rrd).T * 1e3
                 R_B = state[:, 0]
 
                 R_0_B = R_B - R_0
