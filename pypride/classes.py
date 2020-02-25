@@ -284,11 +284,16 @@ class inp_set(object):
                 out.update(o)
         # replace stupidness:
         for k, v in out.items():
-            if v == 'False': out[k] = False
-            if v == 'True': out[k] = True
-            if v == 'None': out[k] = None
+            if v == 'False':
+                out[k] = False
+            if v == 'True':
+                out[k] = True
+            if v == 'None':
+                out[k] = None
             if k in ('tr', 'mas_step', 'm_step', 'm_step_xyz'):
                 out[k] = float(out[k])
+            if k == 'jpl_eph':
+                out[k] = self.config.get('Ephemerides', 'jpl_eph')
         return out
 
 
