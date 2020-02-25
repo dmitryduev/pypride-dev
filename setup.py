@@ -9,7 +9,7 @@ import os
 # fortran module to be compiled with f2py:
 admint2 = Extension(name='admint2',
                     sources=['pypride/admint2.f90'])
-lagrange = Extension(name='admint2',
+lagrange = Extension(name='lagrange',
                      sources=['pypride/lagrange.f90'])
 # fort = Extension(name='fort',
 #                  sources=['pypride/fort.f'])
